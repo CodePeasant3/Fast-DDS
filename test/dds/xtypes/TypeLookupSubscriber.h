@@ -112,7 +112,8 @@ public:
 
     void on_data_writer_discovery(
             eprosima::fastdds::dds::DomainParticipant* /*participant*/,
-            eprosima::fastrtps::rtps::WriterDiscoveryInfo&& info) override;
+            eprosima::fastrtps::rtps::WriterDiscoveryInfo&& info,
+            bool& should_be_ignored) override;
 
 private:
 

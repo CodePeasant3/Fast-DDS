@@ -108,7 +108,8 @@ public:
 
     void on_data_reader_discovery(
             eprosima::fastdds::dds::DomainParticipant* /*participant*/,
-            eprosima::fastrtps::rtps::ReaderDiscoveryInfo&& info) override;
+            eprosima::fastrtps::rtps::ReaderDiscoveryInfo&& info,
+            bool& should_be_ignored) override;
 
 private:
 

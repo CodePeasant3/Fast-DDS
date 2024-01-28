@@ -31,7 +31,7 @@
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
 #include <fastdds/dds/subscriber/qos/SubscriberQos.hpp>
 #include <fastdds/dds/subscriber/Subscriber.hpp>
-#include <fastrtps/xmlparser/XMLProfileManager.h>
+#include <fastdds/LibrarySettings.hpp>
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastrtps::rtps;
@@ -179,9 +179,9 @@ bool TypeLookupSubscriber::init(
 {
     create_type_creator_functions();
 
-    auto settings = fastrtps::xmlparser::XMLProfileManager::library_settings();
-    settings.intraprocess_delivery = fastrtps::INTRAPROCESS_OFF;
-    fastrtps::xmlparser::XMLProfileManager::library_settings(settings);
+    eprosima::fastdds::LibrarySettings library_settings;
+    library_settings.intraprocess_delivery = eprosima::fastdds::IntraprocessDeliveryType::INTRAPROCESS_OFF;
+    eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->set_library_settings(library_settings);
 
     StatusMask mask = StatusMask::subscription_matched()
             << StatusMask::data_available()
@@ -403,8 +403,10 @@ void TypeLookupSubscriber::on_data_available(
 
 void TypeLookupSubscriber::on_data_writer_discovery(
         eprosima::fastdds::dds::DomainParticipant* /*participant*/,
-        eprosima::fastrtps::rtps::WriterDiscoveryInfo&& info)
+        eprosima::fastrtps::rtps::WriterDiscoveryInfo&& info,
+        bool& should_be_ignored)
 {
+    should_be_ignored = false;
     // Check if the type is already created
     if (nullptr == participant_->find_type(info.info.typeName().to_string()))
     {

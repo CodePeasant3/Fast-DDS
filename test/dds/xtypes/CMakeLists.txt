@@ -45,17 +45,21 @@ set(DDS_XTYPES_SOURCE ${COMMON_SOURCE}
     TypeLookup_main.cpp
     TypeLookupPublisher.cpp
     TypeLookupSubscriber.cpp
-    )    
+    )
 
 add_executable(DDSXtypesCommunication ${DDS_XTYPES_SOURCE})
 target_compile_definitions(DDSXtypesCommunication PRIVATE
     $<$<AND:$<NOT:$<BOOL:${WIN32}>>,$<STREQUAL:"${CMAKE_BUILD_TYPE}","Debug">>:__DEBUG>
     $<$<BOOL:${INTERNAL_DEBUG}>:__INTERNALDEBUG> # Internal debug activated.
     )
-target_include_directories(DDSXtypesCommunication PRIVATE 
+target_include_directories(DDSXtypesCommunication PRIVATE
     ${PROJECT_SOURCE_DIR}/test/dds/xtypes
 )
-target_link_libraries(DDSXtypesCommunication fastrtps fastcdr foonathan_memory ${CMAKE_DL_LIBS})
+target_link_libraries(DDSXtypesCommunication
+    fastcdr
+    fastdds
+    foonathan_memory
+    ${CMAKE_DL_LIBS})
 
 ###############################################################################
 # Necessary files
@@ -73,7 +77,7 @@ list(APPEND TEST_DEFINITIONS
     Case9
     Case10
     )
-    
+
 # Python file
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_build.py
     ${CMAKE_CURRENT_BINARY_DIR}/test_build.py COPYONLY)

@@ -34,7 +34,7 @@
 #include <fastdds/dds/publisher/Publisher.hpp>
 #include <fastdds/dds/publisher/qos/DataWriterQos.hpp>
 #include <fastdds/dds/publisher/qos/PublisherQos.hpp>
-#include <fastrtps/xmlparser/XMLProfileManager.h>
+#include <fastdds/LibrarySettings.hpp>
 
 
 using namespace eprosima::fastdds::dds;
@@ -183,9 +183,9 @@ bool TypeLookupPublisher::init(
 {
     create_type_creator_functions();
 
-    auto settings = fastrtps::xmlparser::XMLProfileManager::library_settings();
-    settings.intraprocess_delivery = fastrtps::INTRAPROCESS_OFF;
-    fastrtps::xmlparser::XMLProfileManager::library_settings(settings);
+    eprosima::fastdds::LibrarySettings library_settings;
+    library_settings.intraprocess_delivery = eprosima::fastdds::IntraprocessDeliveryType::INTRAPROCESS_OFF;
+    eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->set_library_settings(library_settings);
 
     participant_ = DomainParticipantFactory::get_instance()
                     ->create_participant(PUB_DOMAIN_ID_, PARTICIPANT_QOS_DEFAULT, this);
@@ -383,8 +383,10 @@ void TypeLookupPublisher::on_publication_matched(
 
 void TypeLookupPublisher::on_data_reader_discovery(
         eprosima::fastdds::dds::DomainParticipant* /*participant*/,
-        eprosima::fastrtps::rtps::ReaderDiscoveryInfo&& info)
+        eprosima::fastrtps::rtps::ReaderDiscoveryInfo&& info,
+        bool& should_be_ignored)
 {
+    should_be_ignored = false;
     // Check if the type is already created
     if (nullptr == participant_->find_type(info.info.typeName().to_string()))
     {
