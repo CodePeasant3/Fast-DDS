@@ -13,19 +13,19 @@
 // limitations under the License.
 
 /**
- * @file TypeLookupPublisher.h
+ * @file TypeLookupServicePublisher.h
  *
  */
 
-#ifndef _TYPELOOKUPTEST_PUBLISHER_H_
-#define _TYPELOOKUPTEST_PUBLISHER_H_
+#ifndef _TYPELOOKUPSERVICETEST_PUBLISHER_H_
+#define _TYPELOOKUPSERVICETEST_PUBLISHER_H_
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 #include <fastdds/dds/publisher/PublisherListener.hpp>
 #include <fastdds/rtps/participant/ParticipantDiscoveryInfo.h>
 
-#include "TypeLookupTestsTypes.h"
+#include "TypeLookupServiceTestsTypes.h"
 
 #include <condition_variable>
 #include <functional>
@@ -37,13 +37,13 @@ namespace eprosima {
 namespace fastdds {
 namespace dds {
 
-class TypeLookupPublisherTypeNotRegisteredException : public std::runtime_error
+class TypeLookupServicePublisherTypeRegistryException : public std::runtime_error
 {
 public:
 
-    TypeLookupPublisherTypeNotRegisteredException(
-            std::string type_name)
-        : std::runtime_error("Type: " + type_name + " not registered in TypeLookupPublisher")
+    TypeLookupServicePublisherTypeRegistryException(
+            std::string msg)
+        : std::runtime_error("Type: " + msg + " in TypeLookupServicePublisher")
     {
     }
 
@@ -52,7 +52,6 @@ public:
 struct PubKnownType
 {
     TypeSupport type_;
-    void* obj_;
     void* type_sup_;
     Publisher* publisher_ = nullptr;
     DataWriter* writer_ = nullptr;
@@ -63,21 +62,22 @@ struct PubKnownType
 
 // Define a macro to simplify type registration
 #define PUBLISHER_TYPE_CREATOR_FUNCTION(Type) \
-    type_creator_functions_[#Type] = std::bind(&TypeLookupPublisher::create_known_type_impl<Type, Type ## PubSubType>, \
+    type_creator_functions_[#Type] = std::bind(&TypeLookupServicePublisher::create_known_type_impl<Type, \
+                    Type ## PubSubType>, \
                     this, \
                     std::placeholders::_1)
 
 
-class TypeLookupPublisher
+class TypeLookupServicePublisher
     : public DomainParticipantListener
 {
 public:
 
-    TypeLookupPublisher()
+    TypeLookupServicePublisher()
     {
     }
 
-    ~TypeLookupPublisher();
+    ~TypeLookupServicePublisher();
 
     void create_type_creator_functions();
 
@@ -132,4 +132,4 @@ private:
 } // fastdds
 } // eprosima
 
-#endif /* _TYPELOOKUPTEST_PUBLISHER_H_ */
+#endif /* _TYPELOOKUPSERVICETEST_PUBLISHER_H_ */

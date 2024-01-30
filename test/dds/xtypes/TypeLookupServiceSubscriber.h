@@ -13,12 +13,12 @@
 // limitations under the License.
 
 /**
- * @file TypeLookupSubscriber.h
+ * @file TypeLookupServiceSubscriber.h
  *
  */
 
-#ifndef _TYPELOOKUPTEST_SUBSCRIBER_H_
-#define _TYPELOOKUPTEST_SUBSCRIBER_H_
+#ifndef _TYPELOOKUPSERVICETEST_SUBSCRIBER_H_
+#define _TYPELOOKUPSERVICETEST_SUBSCRIBER_H_
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
@@ -26,7 +26,7 @@
 #include <fastdds/dds/subscriber/SubscriberListener.hpp>
 #include <fastdds/rtps/participant/ParticipantDiscoveryInfo.h>
 
-#include "TypeLookupTestsTypes.h"
+#include "TypeLookupServiceTestsTypes.h"
 
 #include <chrono>
 #include <condition_variable>
@@ -39,13 +39,13 @@ namespace eprosima {
 namespace fastdds {
 namespace dds {
 
-class TypeLookupSubscriberTypeNotRegisteredException : public std::runtime_error
+class TypeLookupServiceSubscriberTypeRegistryException : public std::runtime_error
 {
 public:
 
-    TypeLookupSubscriberTypeNotRegisteredException(
-            std::string type_name)
-        : std::runtime_error("Type: " + type_name + " not registered in TypeLookupSubscriber")
+    TypeLookupServiceSubscriberTypeRegistryException(
+            std::string msg)
+        : std::runtime_error("Type: " + msg + " in TypeLookupServiceSubscriber")
     {
     }
 
@@ -65,20 +65,21 @@ struct SubKnownType
 
 // Define a macro to simplify type registration
 #define SUBSCRIBER_TYPE_CREATOR_FUNCTION(Type) \
-    type_creator_functions_[#Type] = std::bind(&TypeLookupSubscriber::create_known_type_impl<Type, Type ## PubSubType>, \
+    type_creator_functions_[#Type] = std::bind(&TypeLookupServiceSubscriber::create_known_type_impl<Type, \
+                    Type ## PubSubType>, \
                     this, \
                     std::placeholders::_1)
 
-class TypeLookupSubscriber
+class TypeLookupServiceSubscriber
     : public DomainParticipantListener
 {
 public:
 
-    TypeLookupSubscriber()
+    TypeLookupServiceSubscriber()
     {
     }
 
-    ~TypeLookupSubscriber();
+    ~TypeLookupServiceSubscriber();
 
     void create_type_creator_functions();
 
@@ -138,4 +139,4 @@ private:
 } // eprosima
 
 
-#endif /* _TYPELOOKUPTEST_SUBSCRIBER_H_ */
+#endif /* _TYPELOOKUPSERVICETEST_SUBSCRIBER_H_ */
