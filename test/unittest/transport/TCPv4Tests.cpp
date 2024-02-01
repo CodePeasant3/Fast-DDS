@@ -30,11 +30,13 @@
 #include <MockReceiverResource.h>
 #include <rtps/transport/tcp/RTCPHeader.h>
 #include <rtps/transport/TCPv4Transport.h>
+#include <fastdds/rtps/network/NetworkBuffer.hpp>
 
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
 using TCPv4Transport = eprosima::fastdds::rtps::TCPv4Transport;
 using TCPHeader = eprosima::fastdds::rtps::TCPHeader;
+using NetworkBuffer = eprosima::fastdds::rtps::NetworkBuffer;
 
 #if defined(_WIN32)
 #define GET_PID _getpid
@@ -1435,11 +1437,14 @@ TEST_F(TCPv4Tests, secure_non_blocking_send)
     std::vector<octet> message(msg_size, 0);
     const octet* data = message.data();
     size_t size = message.size();
+    NetworkBuffer buffers(data, size);
+    std::list<NetworkBuffer> buffer_list;
+    buffer_list.push_back(buffers);
 
     // Send the message with no header
     for (int i = 0; i < 5; i++)
     {
-        sender_channel_resource->send(nullptr, 0, data, size, ec);
+        sender_channel_resource->send(nullptr, 0, buffer_list, size, ec);
     }
 
     secure_socket->lowest_layer().close(ec);
@@ -1933,11 +1938,14 @@ TEST_F(TCPv4Tests, non_blocking_send)
     std::vector<octet> message(msg_size, 0);
     const octet* data = message.data();
     size_t size = message.size();
+    NetworkBuffer buffers(data, size);
+    std::list<NetworkBuffer> buffer_list;
+    buffer_list.push_back(buffers);
 
     // Send the message with no header
     for (int i = 0; i < 5; i++)
     {
-        sender_channel_resource->send(nullptr, 0, data, size, ec);
+        sender_channel_resource->send(nullptr, 0, buffer_list, size, ec);
     }
 
     socket.shutdown(asio::ip::tcp::socket::shutdown_both);
