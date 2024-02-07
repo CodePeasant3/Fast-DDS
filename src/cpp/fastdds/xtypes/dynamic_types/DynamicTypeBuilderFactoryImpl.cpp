@@ -866,7 +866,8 @@ traits<DynamicTypeBuilder>::ref_type DynamicTypeBuilderFactoryImpl::create_seque
 
     TypeDescriptorImpl type_descriptor;
     type_descriptor.kind(TK_SEQUENCE);
-    type_descriptor.bound().push_back(sequence_type.header().common().bound());
+    type_descriptor.bound().push_back(sequence_type.header().common().bound() != xtypes::INVALID_LBOUND ?
+            sequence_type.header().common().bound() : LENGTH_UNLIMITED);
 
     ret_val = std::make_shared<DynamicTypeBuilderImpl>(type_descriptor);
 
@@ -904,7 +905,8 @@ traits<DynamicTypeBuilder>::ref_type DynamicTypeBuilderFactoryImpl::create_seque
 
     TypeDescriptorImpl type_descriptor;
     type_descriptor.kind(TK_SEQUENCE);
-    type_descriptor.bound().push_back(sequence_type.header().common().bound());
+    type_descriptor.bound().push_back(sequence_type.header().common().bound() != xtypes::INVALID_LBOUND ?
+            sequence_type.header().common().bound() : LENGTH_UNLIMITED);
 
     ret_val = std::make_shared<DynamicTypeBuilderImpl>(type_descriptor);
 
@@ -998,7 +1000,8 @@ traits<DynamicTypeBuilder>::ref_type DynamicTypeBuilderFactoryImpl::create_map_t
 
     TypeDescriptorImpl type_descriptor;
     type_descriptor.kind(TK_MAP);
-    type_descriptor.bound().push_back(map_type.header().common().bound());
+    type_descriptor.bound().push_back(map_type.header().common().bound() != xtypes::INVALID_LBOUND ?
+            map_type.header().common().bound() : LENGTH_UNLIMITED);
 
     ret_val = std::make_shared<DynamicTypeBuilderImpl>(type_descriptor);
 
@@ -1045,7 +1048,8 @@ traits<DynamicTypeBuilder>::ref_type DynamicTypeBuilderFactoryImpl::create_map_t
 
     TypeDescriptorImpl type_descriptor;
     type_descriptor.kind(TK_MAP);
-    type_descriptor.bound().push_back(map_type.header().common().bound());
+    type_descriptor.bound().push_back(map_type.header().common().bound() != xtypes::INVALID_LBOUND ?
+            map_type.header().common().bound() : LENGTH_UNLIMITED);
 
     ret_val = std::make_shared<DynamicTypeBuilderImpl>(type_descriptor);
 
@@ -1311,7 +1315,8 @@ traits<DynamicType>::ref_type DynamicTypeBuilderFactoryImpl::base_type_from_type
         {
             traits<DynamicType>::ref_type element_type = base_type_from_type_identifier(
                 *type_identifier.seq_sdefn().element_identifier());
-            ret_val = create_sequence_type(element_type, type_identifier.seq_sdefn().bound())->build();
+            ret_val = create_sequence_type(element_type, type_identifier.seq_sdefn().bound() != xtypes::INVALID_LBOUND ?
+                            type_identifier.seq_sdefn().bound() : static_cast<uint32_t>(LENGTH_UNLIMITED))->build();
             break;
         }
         case xtypes::TI_PLAIN_SEQUENCE_LARGE:
@@ -1350,7 +1355,9 @@ traits<DynamicType>::ref_type DynamicTypeBuilderFactoryImpl::base_type_from_type
                 *type_identifier.map_sdefn().element_identifier());
             traits<DynamicType>::ref_type key_type = base_type_from_type_identifier(
                 *type_identifier.map_sdefn().key_identifier());
-            ret_val = create_map_type(key_type, element_type, type_identifier.map_sdefn().bound())->build();
+            ret_val = create_map_type(key_type, element_type,
+                            type_identifier.map_sdefn().bound() != xtypes::INVALID_LBOUND ?
+                            type_identifier.map_sdefn().bound() : static_cast<uint32_t>(LENGTH_UNLIMITED))->build();
             break;
         }
         case xtypes::TI_PLAIN_MAP_LARGE:
