@@ -24,6 +24,7 @@ Forthcoming
   * TimeConversion
   * DBQueue
 * Added create participant methods that use environment XML profile for participant configuration.
+* Calling `DataReader::return_loan` returns `ReturnCode_t::RETCODE_OK` both for empty sequences and for sequences that were not loaned.
 
 Version 2.14.0
 --------------
