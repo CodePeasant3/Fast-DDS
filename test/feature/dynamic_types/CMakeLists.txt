@@ -30,7 +30,7 @@ target_link_libraries(DynamicTypesTests
     $<$<BOOL:${WIN32}>:ws2_32>
     $<$<BOOL:${LINK_SSL}>:OpenSSL::SSL$<SEMICOLON>OpenSSL::Crypto>
     fastcdr
-    fastrtps
+    fastdds
     )
 if(QNX)
     target_link_libraries(DynamicTypesTests socket)
