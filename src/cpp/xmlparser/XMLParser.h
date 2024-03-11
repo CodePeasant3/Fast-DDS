@@ -27,7 +27,7 @@
 #include <fastdds/rtps/attributes/ThreadSettings.hpp>
 #include <fastdds/rtps/transport/PortBasedTransportDescriptor.hpp>
 #include <fastdds/rtps/transport/SocketTransportDescriptor.h>
-#include <fastrtps/transport/TransportDescriptorInterface.h>
+#include <fastdds/rtps/transport/TransportDescriptorInterface.h>
 #include <fastrtps/types/DynamicTypeBuilderPtr.h>
 
 #include <xmlparser/attributes/ParticipantAttributes.hpp>
