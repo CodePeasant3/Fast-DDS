@@ -1398,7 +1398,7 @@ void RTPSParticipantImpl::disableReader(
 bool RTPSParticipantImpl::registerWriter(
         RTPSWriter* Writer,
         const TopicAttributes& topicAtt,
-        const WriterQos& wqos)
+        const fastdds::dds::WriterQos& wqos)
 {
     return this->mp_builtinProtocols->addLocalWriter(Writer, topicAtt, wqos);
 }
@@ -1406,7 +1406,7 @@ bool RTPSParticipantImpl::registerWriter(
 bool RTPSParticipantImpl::registerReader(
         RTPSReader* reader,
         const TopicAttributes& topicAtt,
-        const ReaderQos& rqos,
+        const fastdds::dds::ReaderQos& rqos,
         const fastdds::rtps::ContentFilterProperty* content_filter)
 {
     return this->mp_builtinProtocols->addLocalReader(reader, topicAtt, rqos, content_filter);
@@ -1640,7 +1640,7 @@ void RTPSParticipantImpl::update_attributes(
 bool RTPSParticipantImpl::updateLocalWriter(
         RTPSWriter* Writer,
         const TopicAttributes& topicAtt,
-        const WriterQos& wqos)
+        const fastdds::dds::WriterQos& wqos)
 {
     return this->mp_builtinProtocols->updateLocalWriter(Writer, topicAtt, wqos);
 }
@@ -1648,7 +1648,7 @@ bool RTPSParticipantImpl::updateLocalWriter(
 bool RTPSParticipantImpl::updateLocalReader(
         RTPSReader* reader,
         const TopicAttributes& topicAtt,
-        const ReaderQos& rqos,
+        const fastdds::dds::ReaderQos& rqos,
         const fastdds::rtps::ContentFilterProperty* content_filter)
 {
     return this->mp_builtinProtocols->updateLocalReader(reader, topicAtt, rqos, content_filter);
