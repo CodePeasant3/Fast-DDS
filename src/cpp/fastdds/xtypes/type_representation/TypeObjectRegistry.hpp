@@ -598,6 +598,14 @@ protected:
     const TypeIdentifier minimal_from_complete_type_identifier(
             const TypeIdentifier& complete_type_id);
 
+
+    ReturnCode_t register_typeobject_w_dynamic_type(
+            const DynamicType::_ref_type dynamic_type);
+
+    ReturnCode_t create_structure_typeobject_w_dynamic_type(
+            const DynamicType::_ref_type dynamic_type,
+            TypeObject& type_object);
+
     // Collection of local TypeIdentifiers hashed by type_name.
     // TypeIdentifierPair contains both the minimal and complete TypeObject TypeIdentifiers.
     // In case of indirect hash TypeIdentifiers, type_identifier_2 would be uninitialized (TK_NONE).
