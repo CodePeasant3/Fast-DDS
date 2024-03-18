@@ -557,6 +557,24 @@ ReturnCode_t TypeObjectRegistry::get_dependencies_from_type_object(
     return ret_code;
 }
 
+const TypeIdentifier TypeObjectRegistry::get_complementary_type_identifier(
+        const TypeIdentifier& type_id)
+{
+    std::lock_guard<std::mutex> data_guard(type_object_registry_mutex_);
+    for (const auto& it : local_type_identifiers_)
+    {
+        if (it.second.type_identifier1() == type_id && TK_NONE != it.second.type_identifier2()._d())
+        {
+            return it.second.type_identifier2();
+        }
+        else if (it.second.type_identifier2() == type_id && TK_NONE != it.second.type_identifier1()._d())
+        {
+            return it.second.type_identifier1();
+        }
+    }
+    return type_id;
+}
+
 ReturnCode_t TypeObjectRegistry::get_type_dependencies_impl(
         const TypeIdentifierSeq& type_identifiers,
         std::unordered_set<TypeIdentfierWithSize>& type_dependencies)
