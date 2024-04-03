@@ -2,11 +2,18 @@ name: Documentation build and test
 on:
   workflow_dispatch:
     inputs:
-      documentation_branch:
-        description: 'Documentation branch name'
+      fastdds_docs_branch:
+        description: 'Fast DDS Docs branch'
         required: true
         type: string
+      fastdds_python_branch:
+        description: 'Fast DDS Python branch'
+        required: true
+        type: string
+<<<<<<< HEAD
         default: '2.10.x'
+=======
+>>>>>>> decf68986 (Build Fast DDS Python bindings in Fast DDS Docs Github CI job (#4628))
 
   pull_request:
     branches:
@@ -19,9 +26,6 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-
-env:
-  ACTION_BRANCH_NAME: ${{ github.ref }}
 
 jobs:
   ubuntu-build-and-test-documentation:
@@ -40,7 +44,7 @@ jobs:
       - name: Get minimum supported version of CMake
         uses: eProsima/eProsima-CI/external/get-cmake@v0
         with:
-          cmakeVersion: '3.20.6'
+          cmakeVersion: '3.22.6'
 
       - name: Setup CCache
         uses: eProsima/eProsima-CI/external/setup-ccache-action@v0
@@ -51,12 +55,6 @@ jobs:
           packages: curl grep wget libssl-dev doxygen imagemagick plantuml
           update: false
           upgrade: false
-
-      - name: Install GTest
-        uses: eProsima/eProsima-CI/multiplatform/install_gtest@v0
-        with:
-          cmake_build_type: Release
-          version: release-1.11.0
 
       - name: Install Python dependencies
         uses: eProsima/eProsima-CI/multiplatform/install_python_packages@v0
@@ -74,26 +72,35 @@ jobs:
           destination_workspace: src
           skip_existing: 'true'
 
-      - name: Determine the Fast DDS Documentation branch to be used
-        run: |
-          if [[ ${{ github.event_name }} == "push" ]]
-          then
-            echo "ACTION_BRANCH_NAME=${{ github.ref }}" >> $GITHUB_ENV
-            echo "Push event: using pushed branch '${{ github.ref }}' for docs repository"
+      - name: Fetch Fast DDS CI dependencies
+        uses: eProsima/eProsima-CI/multiplatform/vcs_import@v0
+        with:
+          vcs_repos_file: ${{ github.workspace }}/src/fastrtps/.github/workflows/config/ci.repos
+          destination_workspace: src
+          skip_existing: 'true'
 
-          elif [[ ${{ github.event_name }} == "workflow_dispatch" ]]
-          then
-            echo "ACTION_BRANCH_NAME=${{ inputs.documentation_branch }}" >> $GITHUB_ENV
-            echo "Workflow dispatch event: using input branch '${{ inputs.documentation_branch }}' for docs repository"
+      - name: Get Fast DDS Python branch
+        id: get_fastdds_python_branch
+        uses: eProsima/eProsima-CI/ubuntu/get_related_branch_from_repo@v0
+        with:
+          remote_repository: eProsima/Fast-DDS-python
+          fallback_branch: ${{ inputs.fastdds_python_branch || 'main' }}
 
-          elif [[ ${{ github.event_name }} == "pull_request" ]]
-          then
-            DOCS_REPO=https://github.com/eProsima/fast-dds-docs.git
+      - name: Download Fast DDS Python repo
+        uses: eProsima/eProsima-CI/external/checkout@v0
+        with:
+          repository: eProsima/Fast-DDS-python
+          path: src/fastdds-python
+          ref: ${{ steps.get_fastdds_python_branch.outputs.deduced_branch }}
 
-            # Attempt to use PR's source branch
-            TEMP_BRANCH=${{ github.head_ref }}
-            RESPONSE_CODE=$(git ls-remote --heads $DOCS_REPO $TEMP_BRANCH | wc -l)
+      - name: Get Fast DDS Docs branch
+        id: get_fastdds_docs_branch
+        uses: eProsima/eProsima-CI/ubuntu/get_related_branch_from_repo@v0
+        with:
+          remote_repository: eProsima/Fast-DDS-docs
+          fallback_branch: ${{ inputs.fastdds_docs_branch || 'master' }}
 
+<<<<<<< HEAD
             if [[ ${RESPONSE_CODE} == "0" ]]
             then
               echo "PR source branch '$TEMP_BRANCH' branch DOES NOT exist in $DOCS_REPO"
@@ -125,11 +132,14 @@ jobs:
           fi
 
       - name: Download FastDDS documentation repo
+=======
+      - name: Download Fast DDS documentation repo
+>>>>>>> decf68986 (Build Fast DDS Python bindings in Fast DDS Docs Github CI job (#4628))
         uses: eProsima/eProsima-CI/external/checkout@v0
         with:
           repository: eProsima/Fast-DDS-docs
           path: src/fastdds-docs
-          ref: ${{ env.ACTION_BRANCH_NAME }}
+          ref: ${{ steps.get_fastdds_docs_branch.outputs.deduced_branch }}
 
       - name: Install Fast DDS Docs required python packages
         uses: eProsima/eProsima-CI/ubuntu/install_python_packages@v0
