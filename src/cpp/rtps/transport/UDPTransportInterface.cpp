@@ -20,9 +20,9 @@
 #include <chrono>
 
 #include <fastdds/rtps/transport/TransportInterface.h>
-#include <fastdds/rtps/messages/CDRMessage.h>
 #include <fastdds/dds/log/Log.hpp>
 #include <fastdds/utils/IPLocator.h>
+#include <rtps/messages/CDRMessage.h>
 #include <rtps/transport/UDPSenderResource.hpp>
 #include <statistics/rtps/messages/RTPSStatisticsMessages.hpp>
 
