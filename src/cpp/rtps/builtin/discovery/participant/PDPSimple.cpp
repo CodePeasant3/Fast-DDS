@@ -22,7 +22,6 @@
 
 #include <fastdds/dds/builtin/typelookup/TypeLookupManager.hpp>
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/builtin/data/NetworkConfiguration.hpp>
 #include <fastdds/rtps/builtin/data/ParticipantProxyData.h>
 #include <fastdds/rtps/builtin/data/ReaderProxyData.h>
 #include <fastdds/rtps/builtin/data/WriterProxyData.h>
@@ -36,6 +35,7 @@
 
 #include <fastdds/utils/IPLocator.h>
 #include <rtps/builtin/BuiltinProtocols.h>
+#include <rtps/builtin/data/NetworkConfiguration.hpp>
 #include <rtps/builtin/discovery/endpoint/EDPSimple.h>
 #include <rtps/builtin/discovery/endpoint/EDPStatic.h>
 #include <rtps/builtin/discovery/participant/DS/PDPSecurityInitiatorListener.hpp>
