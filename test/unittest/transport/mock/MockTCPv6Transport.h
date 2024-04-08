@@ -46,6 +46,11 @@ public:
         return unbound_channel_resources_;
     }
 
+    const std::map<Locator_t, std::set<uint16_t>>& get_channel_pending_logical_ports() const
+    {
+        return channel_pending_logical_ports_;
+    }
+
 };
 
 } // namespace rtps
