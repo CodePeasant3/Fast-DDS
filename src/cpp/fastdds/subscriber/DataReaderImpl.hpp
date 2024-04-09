@@ -403,6 +403,8 @@ protected:
 
     fastrtps::rtps::GUID_t guid_;
 
+    DataRepresentationId_t data_representation_ {DEFAULT_DATA_REPRESENTATION};
+
     class InnerDataReaderListener : public fastrtps::rtps::ReaderListener
     {
     public:
