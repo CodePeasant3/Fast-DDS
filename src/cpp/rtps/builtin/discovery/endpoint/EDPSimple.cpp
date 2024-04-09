@@ -33,7 +33,6 @@
 #include <fastdds/rtps/builtin/data/WriterProxyData.h>
 #include <fastdds/rtps/history/ReaderHistory.h>
 #include <fastdds/rtps/history/WriterHistory.h>
-#include <fastdds/rtps/reader/StatefulReader.h>
 #include <fastdds/rtps/writer/StatefulWriter.h>
 
 #include <rtps/builtin/BuiltinProtocols.h>
@@ -41,6 +40,7 @@
 #include <rtps/builtin/discovery/endpoint/EDPUtils.hpp>
 #include <rtps/builtin/discovery/participant/PDP.h>
 #include <rtps/history/TopicPayloadPoolRegistry.hpp>
+#include <rtps/reader/StatefulReader.h>
 
 using ParameterList = eprosima::fastdds::dds::ParameterList;
 

@@ -17,6 +17,8 @@
  *
  */
 
+#include <rtps/reader/StatefulReader.h>
+
 #include <cassert>
 #include <mutex>
 #include <thread>
@@ -26,7 +28,6 @@
 #include <fastdds/rtps/history/ReaderHistory.h>
 #include <fastdds/rtps/messages/RTPSMessageCreator.h>
 #include <fastdds/rtps/reader/ReaderListener.h>
-#include <fastdds/rtps/reader/StatefulReader.h>
 
 #include <rtps/builtin/BuiltinProtocols.h>
 #include <rtps/builtin/liveliness/WLP.h>

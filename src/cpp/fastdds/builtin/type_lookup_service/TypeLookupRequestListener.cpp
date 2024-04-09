@@ -25,9 +25,8 @@
 #include <fastdds/builtin/type_lookup_service/TypeLookupManager.hpp>
 #include <fastdds/dds/log/Log.hpp>
 #include <fastrtps/rtps/history/ReaderHistory.h>
-#include <fastrtps/rtps/reader/StatefulReader.h>
 #include <fastrtps/rtps/writer/StatefulWriter.h>
-
+#include <rtps/reader/StatefulReader.h>
 
 using eprosima::fastrtps::rtps::RTPSReader;
 using eprosima::fastrtps::rtps::CacheChange_t;
