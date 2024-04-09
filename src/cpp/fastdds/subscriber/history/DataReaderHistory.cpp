@@ -252,48 +252,53 @@ bool DataReaderHistory::received_change_keep_all(
 
 bool DataReaderHistory::received_change_keep_last(
         CacheChange_t* a_change,
-        size_t,
+        size_t unknown_missing_changes_up_to,
         SampleRejectedStatusKind& rejection_reason)
 {
-    if (!compute_key_for_change_fn_(a_change))
-    {
-        // Store the sample temporally only in ReaderHistory. When completed it will be stored in SubscriberHistory too.
-        return add_to_reader_history_if_not_full(a_change, rejection_reason);
-    }
-
     bool ret_value = false;
-    InstanceCollection::iterator vit;
-    if (find_key(a_change->instanceHandle, vit))
+
+    if(unknown_missing_changes_up_to == 0)
     {
-        DataReaderInstance::ChangeCollection& instance_changes = vit->second->cache_changes;
-        if (instance_changes.size() < static_cast<size_t>(history_qos_.depth))
+        if (!compute_key_for_change_fn_(a_change))
         {
-            ret_value = true;
+            // Store the sample temporally only in ReaderHistory. When completed it will be stored in SubscriberHistory too.
+            return add_to_reader_history_if_not_full(a_change, rejection_reason);
         }
-        else
+
+        bool ret_value = false;
+        InstanceCollection::iterator vit;
+        if (find_key(a_change->instanceHandle, vit))
         {
-            // Try to substitute the oldest sample.
-            CacheChange_t* first_change = instance_changes.at(0);
-            if (a_change->sourceTimestamp >= first_change->sourceTimestamp)
+            DataReaderInstance::ChangeCollection& instance_changes = vit->second->cache_changes;
+            if (instance_changes.size() < static_cast<size_t>(history_qos_.depth))
             {
-                // As the instance is ordered by source timestamp, we can always remove the first one.
-                ret_value = remove_change_sub(first_change);
+                ret_value = true;
             }
             else
             {
-                // Received change is older than oldest, and should be discarded
-                return true;
+                // Try to substitute the oldest sample.
+                CacheChange_t* first_change = instance_changes.at(0);
+                if (a_change->sourceTimestamp >= first_change->sourceTimestamp)
+                {
+                    // As the instance is ordered by source timestamp, we can always remove the first one.
+                    ret_value = remove_change_sub(first_change);
+                }
+                else
+                {
+                    // Received change is older than oldest, and should be discarded
+                    return true;
+                }
+            }
+
+            if (ret_value)
+            {
+                ret_value = add_received_change_with_key(a_change, *vit->second, rejection_reason);
             }
         }
-
-        if (ret_value)
+        else
         {
-            ret_value = add_received_change_with_key(a_change, *vit->second, rejection_reason);
+            rejection_reason = REJECTED_BY_INSTANCES_LIMIT;
         }
-    }
-    else
-    {
-        rejection_reason = REJECTED_BY_INSTANCES_LIMIT;
     }
 
     return ret_value;
