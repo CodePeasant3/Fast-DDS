@@ -1399,6 +1399,12 @@ public:
 
     bool is_plain() const override
     {
+        return is_plain(DataRepresentationId_t::XCDR_DATA_REPRESENTATION); // default XCDR1
+    }
+
+    bool is_plain(
+            DataRepresentationId_t /*data_representation_id*/) const
+    {
         return true;
     }
 
@@ -2155,6 +2161,60 @@ TEST(DataWriterTests, history_depth_max_samples_per_instance_warning)
     participant->delete_contained_entities();
     DomainParticipantFactory::get_instance()->delete_participant(participant);
     Log::KillThread();
+}
+
+
+TEST(DataWriterTests, data_type_is_plain_data_representation)
+{
+    /* Create a participant, topic, and a publisher */
+    DomainParticipant* participant = DomainParticipantFactory::get_instance()->create_participant(0,
+                    PARTICIPANT_QOS_DEFAULT);
+    ASSERT_NE(participant, nullptr);
+
+
+    std::unique_ptr<LoanableTypeSupport> src_type(new LoanableTypeSupport);
+    TypeSupport type(src_type.get());
+    type.register_type(participant);
+
+    Topic* topic = participant->create_topic("plain_topic", type.get_type_name(), TOPIC_QOS_DEFAULT);
+    ASSERT_NE(topic, nullptr);
+
+    Publisher* publisher = participant->create_publisher(PUBLISHER_QOS_DEFAULT);
+    ASSERT_NE(publisher, nullptr);
+
+    /* Define default data representation (XCDR1) QoS to force "is_plain" call */
+    DataWriterQos qos_xcdr = DATAWRITER_QOS_DEFAULT;
+    qos_xcdr.endpoint().history_memory_policy = PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+
+    /* Expect the "is_plain" method called with default data representation (XCDR1) */
+    EXPECT_CALL(type, is_plain(DataRepresentationId_t::XCDR_DATA_REPRESENTATION)).Times(1);
+    EXPECT_CALL(type, is_plain(DataRepresentationId_t::XCDR2_DATA_REPRESENTATION)).Times(0);
+
+    /* Create a datawriter will trigger the "is_plain" call */
+    DataWriter* datawriter_xcdr = publisher->create_datawriter(topic, qos_xcdr);
+    ASSERT_NE(datawriter_xcdr, nullptr);
+
+    testing::Mock::VerifyAndClearExpectations(&type);
+
+    /* Define XCDR2 data representation QoS to force "is_plain" call */
+    DataWriterQos qos_xcdr2 = DATAWRITER_QOS_DEFAULT;
+    qos_xcdr2.endpoint().history_memory_policy = PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+    qos_xcdr2.representation().m_value.clear();
+    qos_xcdr2.representation().m_value.push_back(DataRepresentationId_t::XCDR2_DATA_REPRESENTATION);
+
+    /* Expect the "is_plain" method called with XCDR2 data representation */
+    EXPECT_CALL(type, is_plain(DataRepresentationId_t::XCDR_DATA_REPRESENTATION)).Times(0);
+    EXPECT_CALL(type, is_plain(DataRepresentationId_t::XCDR2_DATA_REPRESENTATION)).Times(1);
+
+    /* Create a datawriter will trigger the "is_plain" call */
+    DataWriter* datawriter_xcdr2 = publisher->create_datawriter(topic, qos_xcdr2);
+    ASSERT_NE(datawriter_xcdr2, nullptr);
+
+    testing::Mock::VerifyAndClearExpectations(&type);
+
+    /* Tear down */
+    participant->delete_contained_entities();
+    DomainParticipantFactory::get_instance()->delete_participant(participant);
 }
 
 } // namespace dds
