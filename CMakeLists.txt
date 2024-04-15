@@ -107,6 +107,8 @@ if("${CMAKE_CXX_COMPILER_LAUNCHER}" STREQUAL "ccache" AND
     add_compile_options(-fdiagnostics-color=always)
 endif()
 
+include(cmake/package.cmake)
+
 ###############################################################################
 # Test system configuration
 ###############################################################################
