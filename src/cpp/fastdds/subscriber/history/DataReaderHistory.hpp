@@ -25,6 +25,8 @@
 #include <memory>
 #include <utility>
 
+#include <fastcdr/cdr/fixed_size_string.hpp>
+
 #include <fastdds/dds/core/policy/QosPolicies.hpp>
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
 #include <fastdds/dds/subscriber/SampleInfo.hpp>
@@ -33,17 +35,16 @@
 #include <fastdds/dds/topic/TopicDescription.hpp>
 #include <fastdds/dds/topic/TypeSupport.hpp>
 
-#include <fastdds/rtps/common/CacheChange.h>
-#include <fastdds/rtps/common/Guid.h>
-#include <fastdds/rtps/common/InstanceHandle.h>
-#include <fastdds/rtps/common/SequenceNumber.h>
-#include <fastdds/rtps/history/ReaderHistory.h>
-#include <fastdds/rtps/resources/ResourceManagement.h>
+#include <fastdds/rtps/attributes/ResourceManagement.hpp>
+#include <fastdds/rtps/common/CacheChange.hpp>
+#include <fastdds/rtps/common/Guid.hpp>
+#include <fastdds/rtps/common/InstanceHandle.hpp>
+#include <fastdds/rtps/common/SequenceNumber.hpp>
+#include <fastdds/rtps/history/ReaderHistory.hpp>
 
 #include <fastdds/subscriber/DataReaderImpl/StateFilter.hpp>
 
-#include <fastrtps/utils/fixed_size_string.hpp>
-#include <fastrtps/utils/collections/ResourceLimitedContainerConfig.hpp>
+#include <fastdds/utils/collections/ResourceLimitedContainerConfig.hpp>
 
 #include "DataReaderHistoryCounters.hpp"
 #include "DataReaderInstance.hpp"
@@ -56,15 +57,15 @@ namespace detail {
 /**
  * Class DataReaderHistory, container of the different CacheChanges of a DataReader
  */
-class DataReaderHistory : public eprosima::fastrtps::rtps::ReaderHistory
+class DataReaderHistory : public eprosima::fastdds::rtps::ReaderHistory
 {
 public:
 
-    using MemoryManagementPolicy_t = eprosima::fastrtps::rtps::MemoryManagementPolicy_t;
-    using InstanceHandle_t = eprosima::fastrtps::rtps::InstanceHandle_t;
-    using CacheChange_t = eprosima::fastrtps::rtps::CacheChange_t;
-    using GUID_t = eprosima::fastrtps::rtps::GUID_t;
-    using SequenceNumber_t = eprosima::fastrtps::rtps::SequenceNumber_t;
+    using MemoryManagementPolicy_t = eprosima::fastdds::rtps::MemoryManagementPolicy_t;
+    using InstanceHandle_t = eprosima::fastdds::rtps::InstanceHandle_t;
+    using CacheChange_t = eprosima::fastdds::rtps::CacheChange_t;
+    using GUID_t = eprosima::fastdds::rtps::GUID_t;
+    using SequenceNumber_t = eprosima::fastdds::rtps::SequenceNumber_t;
 
     using InstanceCollection = std::map<InstanceHandle_t, std::shared_ptr<DataReaderInstance>>;
     using instance_info = InstanceCollection::iterator;
@@ -349,7 +350,7 @@ public:
             CacheChange_t* const change);
 
     void writer_not_alive(
-            const fastrtps::rtps::GUID_t& writer_guid);
+            const fastdds::rtps::GUID_t& writer_guid);
 
     void check_and_remove_instance(
             instance_info& instance_info);
@@ -369,9 +370,9 @@ public:
 private:
 
     //!Resource limits for allocating the array of changes per instance
-    eprosima::fastrtps::ResourceLimitedContainerConfig key_changes_allocation_;
+    eprosima::fastdds::ResourceLimitedContainerConfig key_changes_allocation_;
     //!Resource limits for allocating the array of alive writers per instance
-    eprosima::fastrtps::ResourceLimitedContainerConfig key_writers_allocation_;
+    eprosima::fastdds::ResourceLimitedContainerConfig key_writers_allocation_;
     //!Collection of DataReaderInstance objects accessible by their handle
     InstanceCollection instances_;
     //!Collection of DataReaderInstance objects with available data, accessible by their handle
@@ -381,9 +382,9 @@ private:
     //!ResourceLimitsQosPolicy values.
     ResourceLimitsQosPolicy resource_limited_qos_;
     //!Topic name
-    fastrtps::string_255 topic_name_;
+    fastcdr::string_255 topic_name_;
     //!Type name
-    fastrtps::string_255 type_name_;
+    fastcdr::string_255 type_name_;
     //!Whether the type has keys
     bool has_keys_;
     //!TopicDataType

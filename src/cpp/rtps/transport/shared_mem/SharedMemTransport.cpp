@@ -23,12 +23,12 @@
 #endif // ifdef ANDROID
 
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/common/Locator.h>
-#include <fastdds/rtps/transport/SenderResource.h>
-#include <fastdds/rtps/transport/TransportInterface.h>
-#include <fastrtps/rtps/messages/CDRMessage.h>
-#include <fastrtps/rtps/messages/MessageReceiver.h>
+#include <fastdds/rtps/common/Locator.hpp>
+#include <fastdds/rtps/transport/SenderResource.hpp>
+#include <fastdds/rtps/transport/TransportInterface.hpp>
 
+#include <rtps/messages/CDRMessage.hpp>
+#include <rtps/messages/MessageReceiver.h>
 #include <rtps/network/ReceiverResource.h>
 #include <rtps/transport/shared_mem/SharedMemChannelResource.hpp>
 #include <rtps/transport/shared_mem/SharedMemManager.hpp>
@@ -37,19 +37,13 @@
 #include <rtps/transport/shared_mem/SHMLocator.hpp>
 #include <statistics/rtps/messages/RTPSStatisticsMessages.hpp>
 
-#define SHM_MANAGER_DOMAIN ("fastrtps")
+#define SHM_MANAGER_DOMAIN ("fastdds")
 
 using namespace std;
 
 namespace eprosima {
 namespace fastdds {
 namespace rtps {
-
-using octet = fastrtps::rtps::octet;
-using SenderResource = fastrtps::rtps::SenderResource;
-using LocatorSelectorEntry = fastrtps::rtps::LocatorSelectorEntry;
-using LocatorSelector = fastrtps::rtps::LocatorSelector;
-using PortParameters = fastrtps::rtps::PortParameters;
 
 TransportInterface* SharedMemTransportDescriptor::create_transport() const
 {
@@ -245,7 +239,7 @@ bool SharedMemTransport::DoInputLocatorsMatch(
 }
 
 bool SharedMemTransport::init(
-        const fastrtps::rtps::PropertyPolicy*,
+        const fastdds::rtps::PropertyPolicy*,
         const uint32_t& max_msg_size_no_frag)
 {
     (void) max_msg_size_no_frag;
@@ -388,6 +382,19 @@ bool SharedMemTransport::OpenOutputChannel(
     return true;
 }
 
+bool SharedMemTransport::OpenOutputChannels(
+        SendResourceList& send_resource_list,
+        const LocatorSelectorEntry& locator_selector_entry)
+{
+    bool success = false;
+    for (size_t i = 0; i < locator_selector_entry.state.unicast.size(); ++i)
+    {
+        size_t index = locator_selector_entry.state.unicast[i];
+        success |= OpenOutputChannel(send_resource_list, locator_selector_entry.unicast[index]);
+    }
+    return success;
+}
+
 Locator SharedMemTransport::RemoteToMainLocal(
         const Locator& remote) const
 {
@@ -418,25 +425,38 @@ bool SharedMemTransport::transform_remote_locator(
 }
 
 std::shared_ptr<SharedMemManager::Buffer> SharedMemTransport::copy_to_shared_buffer(
-        const octet* send_buffer,
-        uint32_t send_buffer_size,
+        const std::vector<NetworkBuffer>& buffers,
+        uint32_t total_bytes,
         const std::chrono::steady_clock::time_point& max_blocking_time_point)
 {
+    using namespace eprosima::fastdds::statistics::rtps;
+
     assert(shared_mem_segment_);
 
     std::shared_ptr<SharedMemManager::Buffer> shared_buffer =
-            shared_mem_segment_->alloc_buffer(send_buffer_size, max_blocking_time_point);
+            shared_mem_segment_->alloc_buffer(total_bytes, max_blocking_time_point);
+    uint8_t* pos = static_cast<uint8_t*>(shared_buffer->data());
 
-    memcpy(shared_buffer->data(), send_buffer, send_buffer_size);
+    // Statistics submessage is always the last buffer to be added
+    // If statistics message is present, skip last buffer
+    auto it_end = remove_statistics_buffer(buffers.back(), total_bytes) ? std::prev(buffers.end()) : buffers.end();
+
+
+    for (auto it = buffers.begin(); it != it_end; ++it)
+    {
+        // Direct copy from the const_buffer to the mutable shared_buffer
+        memcpy(pos, (it->buffer), it->size);
+        pos += it->size;
+    }
 
     return shared_buffer;
 }
 
 bool SharedMemTransport::send(
-        const octet* send_buffer,
-        uint32_t send_buffer_size,
-        fastrtps::rtps::LocatorsIterator* destination_locators_begin,
-        fastrtps::rtps::LocatorsIterator* destination_locators_end,
+        const std::vector<NetworkBuffer>& buffers,
+        uint32_t total_bytes,
+        fastdds::rtps::LocatorsIterator* destination_locators_begin,
+        fastdds::rtps::LocatorsIterator* destination_locators_end,
         const std::chrono::steady_clock::time_point& max_blocking_time_point)
 {
     using namespace eprosima::fastdds::statistics::rtps;
@@ -445,7 +465,7 @@ bool SharedMemTransport::send(
     cleanup_output_ports();
 #endif // if !defined(_WIN32)
 
-    fastrtps::rtps::LocatorsIterator& it = *destination_locators_begin;
+    fastdds::rtps::LocatorsIterator& it = *destination_locators_begin;
 
     bool ret = true;
 
@@ -460,8 +480,7 @@ bool SharedMemTransport::send(
                 // Only copy the first time
                 if (shared_buffer == nullptr)
                 {
-                    remove_statistics_submessage(send_buffer, send_buffer_size);
-                    shared_buffer = copy_to_shared_buffer(send_buffer, send_buffer_size, max_blocking_time_point);
+                    shared_buffer = copy_to_shared_buffer(buffers, total_bytes, max_blocking_time_point);
                 }
 
                 ret &= send(shared_buffer, *it);
@@ -599,7 +618,7 @@ bool SharedMemTransport::send(
 void SharedMemTransport::select_locators(
         LocatorSelector& selector) const
 {
-    fastrtps::ResourceLimitedVector<LocatorSelectorEntry*>& entries = selector.transport_starts();
+    fastdds::ResourceLimitedVector<LocatorSelectorEntry*>& entries = selector.transport_starts();
 
     for (size_t i = 0; i < entries.size(); ++i)
     {

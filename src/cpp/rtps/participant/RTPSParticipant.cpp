@@ -17,12 +17,12 @@
  *
  */
 
-#include <fastdds/rtps/Endpoint.h>
-#include <fastdds/rtps/participant/RTPSParticipant.h>
+#include <fastdds/rtps/Endpoint.hpp>
+#include <fastdds/rtps/participant/RTPSParticipant.hpp>
 #include <rtps/participant/RTPSParticipantImpl.h>
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 RTPSParticipant::RTPSParticipant(
@@ -78,7 +78,7 @@ uint32_t RTPSParticipant::getRTPSParticipantID() const
 bool RTPSParticipant::registerWriter(
         RTPSWriter* Writer,
         const TopicAttributes& topicAtt,
-        const WriterQos& wqos)
+        const fastdds::dds::WriterQos& wqos)
 {
     return mp_impl->registerWriter(Writer, topicAtt, wqos);
 }
@@ -86,7 +86,7 @@ bool RTPSParticipant::registerWriter(
 bool RTPSParticipant::registerReader(
         RTPSReader* Reader,
         const TopicAttributes& topicAtt,
-        const ReaderQos& rqos,
+        const fastdds::dds::ReaderQos& rqos,
         const fastdds::rtps::ContentFilterProperty* content_filter)
 {
     return mp_impl->registerReader(Reader, topicAtt, rqos, content_filter);
@@ -101,7 +101,7 @@ void RTPSParticipant::update_attributes(
 bool RTPSParticipant::updateWriter(
         RTPSWriter* Writer,
         const TopicAttributes& topicAtt,
-        const WriterQos& wqos)
+        const fastdds::dds::WriterQos& wqos)
 {
     return mp_impl->updateLocalWriter(Writer, topicAtt, wqos);
 }
@@ -109,7 +109,7 @@ bool RTPSParticipant::updateWriter(
 bool RTPSParticipant::updateReader(
         RTPSReader* Reader,
         const TopicAttributes& topicAtt,
-        const ReaderQos& rqos,
+        const fastdds::dds::ReaderQos& rqos,
         const fastdds::rtps::ContentFilterProperty* content_filter)
 {
     return mp_impl->updateLocalReader(Reader, topicAtt, rqos, content_filter);
@@ -143,11 +143,6 @@ ResourceEvent& RTPSParticipant::get_resource_event() const
 WLP* RTPSParticipant::wlp() const
 {
     return mp_impl->wlp();
-}
-
-fastdds::dds::builtin::TypeLookupManager* RTPSParticipant::typelookup_manager() const
-{
-    return mp_impl->typelookup_manager();
 }
 
 bool RTPSParticipant::get_new_entity_id(
@@ -266,21 +261,21 @@ bool RTPSParticipant::disable_monitor_service() const
 }
 
 bool RTPSParticipant::fill_discovery_data_from_cdr_message(
-        fastrtps::rtps::ParticipantProxyData& data,
+        fastdds::rtps::ParticipantProxyData& data,
         fastdds::statistics::MonitorServiceStatusData& msg)
 {
     return mp_impl->fill_discovery_data_from_cdr_message(data, msg);
 }
 
 bool RTPSParticipant::fill_discovery_data_from_cdr_message(
-        fastrtps::rtps::WriterProxyData& data,
+        fastdds::rtps::WriterProxyData& data,
         fastdds::statistics::MonitorServiceStatusData& msg)
 {
     return mp_impl->fill_discovery_data_from_cdr_message(data, msg);
 }
 
 bool RTPSParticipant::fill_discovery_data_from_cdr_message(
-        fastrtps::rtps::ReaderProxyData& data,
+        fastdds::rtps::ReaderProxyData& data,
         fastdds::statistics::MonitorServiceStatusData& msg)
 {
     return mp_impl->fill_discovery_data_from_cdr_message(data, msg);
@@ -289,6 +284,6 @@ bool RTPSParticipant::fill_discovery_data_from_cdr_message(
 #endif // FASTDDS_STATISTICS
 
 } /* namespace rtps */
-} /* namespace fastrtps */
+} /* namespace fastdds */
 } /* namespace eprosima */
 

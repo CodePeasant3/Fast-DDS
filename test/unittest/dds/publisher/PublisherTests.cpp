@@ -12,41 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <fstream>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <dds/domain/DomainParticipant.hpp>
-#include <dds/domain/DomainParticipant.hpp>
-#include <dds/pub/DataWriter.hpp>
-#include <dds/pub/Publisher.hpp>
-#include <dds/pub/Publisher.hpp>
-#include <dds/pub/qos/DataWriterQos.hpp>
-#include <dds/pub/qos/PublisherQos.hpp>
-#include <dds/topic/Topic.hpp>
-
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
+#include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
 #include <fastdds/dds/publisher/DataWriter.hpp>
 #include <fastdds/dds/publisher/Publisher.hpp>
 #include <fastdds/dds/publisher/PublisherListener.hpp>
 #include <fastdds/dds/publisher/qos/DataWriterQos.hpp>
-
-#include <fastdds/rtps/attributes/PropertyPolicy.h>
-
-#include <fastrtps/attributes/PublisherAttributes.h>
-#include <fastrtps/attributes/SubscriberAttributes.h>
-#include <fastrtps/xmlparser/XMLProfileManager.h>
-#include <fstream>
-
+#include <fastdds/dds/publisher/qos/PublisherQos.hpp>
+#include <fastdds/rtps/attributes/PropertyPolicy.hpp>
 
 namespace eprosima {
 namespace fastdds {
 namespace dds {
 
-using fastrtps::PublisherAttributes;
-using fastrtps::rtps::PropertyPolicyHelper;
-using fastrtps::xmlparser::XMLProfileManager;
-using fastrtps::xmlparser::XMLP_ret;
+using rtps::PropertyPolicyHelper;
 
 class TopicDataTypeMock : public TopicDataType
 {
@@ -60,35 +45,35 @@ public:
     }
 
     bool serialize(
-            void* data,
-            eprosima::fastrtps::rtps::SerializedPayload_t* payload) override
+            const void* const data,
+            eprosima::fastdds::rtps::SerializedPayload_t* payload) override
     {
         return serialize(data, payload, eprosima::fastdds::dds::DEFAULT_DATA_REPRESENTATION);
     }
 
     bool serialize(
-            void* /*data*/,
-            fastrtps::rtps::SerializedPayload_t* /*payload*/,
+            const void* const /*data*/,
+            fastdds::rtps::SerializedPayload_t* /*payload*/,
             DataRepresentationId_t /*data_representation*/) override
     {
         return true;
     }
 
     bool deserialize(
-            fastrtps::rtps::SerializedPayload_t* /*payload*/,
+            fastdds::rtps::SerializedPayload_t* /*payload*/,
             void* /*data*/) override
     {
         return true;
     }
 
     std::function<uint32_t()> getSerializedSizeProvider(
-            void* data) override
+            const void* const data) override
     {
         return getSerializedSizeProvider(data, eprosima::fastdds::dds::DEFAULT_DATA_REPRESENTATION);
     }
 
     std::function<uint32_t()> getSerializedSizeProvider(
-            void* /*data*/,
+            const void* const /*data*/,
             DataRepresentationId_t /*data_representation*/) override
     {
         return []()->uint32_t
@@ -108,8 +93,8 @@ public:
     }
 
     bool getKey(
-            void* /*data*/,
-            fastrtps::rtps::InstanceHandle_t* /*ihandle*/,
+            const void* const /*data*/,
+            fastdds::rtps::InstanceHandle_t* /*ihandle*/,
             bool /*force_md5*/) override
     {
         return true;
@@ -129,35 +114,35 @@ public:
     }
 
     bool serialize(
-            void* data,
-            eprosima::fastrtps::rtps::SerializedPayload_t* payload) override
+            const void* const data,
+            eprosima::fastdds::rtps::SerializedPayload_t* payload) override
     {
         return serialize(data, payload, eprosima::fastdds::dds::DEFAULT_DATA_REPRESENTATION);
     }
 
     bool serialize(
-            void* /*data*/,
-            fastrtps::rtps::SerializedPayload_t* /*payload*/,
+            const void* const /*data*/,
+            fastdds::rtps::SerializedPayload_t* /*payload*/,
             DataRepresentationId_t /*data_representation*/) override
     {
         return true;
     }
 
     bool deserialize(
-            fastrtps::rtps::SerializedPayload_t* /*payload*/,
+            fastdds::rtps::SerializedPayload_t* /*payload*/,
             void* /*data*/) override
     {
         return true;
     }
 
     std::function<uint32_t()> getSerializedSizeProvider(
-            void* data) override
+            const void* const data) override
     {
         return getSerializedSizeProvider(data, eprosima::fastdds::dds::DEFAULT_DATA_REPRESENTATION);
     }
 
     std::function<uint32_t()> getSerializedSizeProvider(
-            void* /*data*/,
+            const void* const /*data*/,
             DataRepresentationId_t /*data_representation*/) override
     {
         return std::function<uint32_t()>();
@@ -183,9 +168,15 @@ public:
         return true;
     }
 
+    inline bool is_plain(
+            DataRepresentationId_t) const override
+    {
+        return true;
+    }
+
     bool getKey(
-            void* /*data*/,
-            fastrtps::rtps::InstanceHandle_t* /*ihandle*/,
+            const void* const /*data*/,
+            fastdds::rtps::InstanceHandle_t* /*ihandle*/,
             bool /*force_md5*/) override
     {
         return true;
@@ -208,17 +199,8 @@ TEST(PublisherTests, GetPublisherParticipant)
 
     ASSERT_EQ(publisher->get_participant(), participant);
 
-    ASSERT_TRUE(participant->delete_publisher(publisher) == ReturnCode_t::RETCODE_OK);
-    ASSERT_TRUE(DomainParticipantFactory::get_instance()->delete_participant(participant) == ReturnCode_t::RETCODE_OK);
-}
-
-TEST(PublisherTests, GetPSMPublisherParticipant)
-{
-    ::dds::domain::DomainParticipant participant = ::dds::domain::DomainParticipant(0, PARTICIPANT_QOS_DEFAULT);
-    ::dds::pub::Publisher publisher = ::dds::pub::Publisher(participant, PUBLISHER_QOS_DEFAULT);
-
-    ASSERT_EQ(publisher.participant().delegate().get(), participant.delegate().get());
-
+    ASSERT_TRUE(participant->delete_publisher(publisher) == RETCODE_OK);
+    ASSERT_TRUE(DomainParticipantFactory::get_instance()->delete_participant(participant) == RETCODE_OK);
 }
 
 TEST(PublisherTests, ChangeDefaultDataWriterQos)
@@ -255,7 +237,7 @@ TEST(PublisherTests, ChangeDefaultDataWriterQos)
     // .reliability
     qos.reliability().kind = eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS;
     qos.reliability().max_blocking_time.seconds = 100;
-    qos.reliability().max_blocking_time.nanosec = eprosima::fastrtps::Time_t::INFINITE_NANOSECONDS;
+    qos.reliability().max_blocking_time.nanosec = eprosima::fastdds::Time_t::INFINITE_NANOSECONDS;
     // .destination_order
     qos.destination_order().kind = eprosima::fastdds::dds::BY_RECEPTION_TIMESTAMP_DESTINATIONORDER_QOS;
     // .history
@@ -288,7 +270,7 @@ TEST(PublisherTests, ChangeDefaultDataWriterQos)
     qos.publish_mode().flow_controller_name = "Prueba";
 
     // .properties
-    eprosima::fastrtps::rtps::Property property;
+    eprosima::fastdds::rtps::Property property;
     property.name("Property1");
     property.value("Value1");
     qos.properties().properties().push_back(property);
@@ -311,7 +293,7 @@ TEST(PublisherTests, ChangeDefaultDataWriterQos)
     // .endpoint
     qos.endpoint().user_defined_id = 1;
     qos.endpoint().entity_id = 2;
-    qos.endpoint().history_memory_policy = eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+    qos.endpoint().history_memory_policy = eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
     // . writer_resource_limits
     qos.writer_resource_limits().matched_subscriber_allocation.initial = 30;
     qos.writer_resource_limits().matched_subscriber_allocation.maximum = 300;
@@ -319,7 +301,7 @@ TEST(PublisherTests, ChangeDefaultDataWriterQos)
     // . data_sharing
     qos.data_sharing().on("/");
 
-    ASSERT_TRUE(publisher->set_default_datawriter_qos(qos) == ReturnCode_t::RETCODE_OK);
+    ASSERT_TRUE(publisher->set_default_datawriter_qos(qos) == RETCODE_OK);
     DataWriterQos wqos;
     publisher->get_default_datawriter_qos(wqos);
 
@@ -346,7 +328,7 @@ TEST(PublisherTests, ChangeDefaultDataWriterQos)
     // .reliability
     EXPECT_EQ(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS, wqos.reliability().kind);
     EXPECT_EQ(100, wqos.reliability().max_blocking_time.seconds);
-    EXPECT_EQ(eprosima::fastrtps::Time_t::INFINITE_NANOSECONDS, wqos.reliability().max_blocking_time.nanosec);
+    EXPECT_EQ(eprosima::fastdds::Time_t::INFINITE_NANOSECONDS, wqos.reliability().max_blocking_time.nanosec);
     // .destination_order
     EXPECT_EQ(eprosima::fastdds::dds::BY_RECEPTION_TIMESTAMP_DESTINATIONORDER_QOS, wqos.destination_order().kind);
     // .history
@@ -394,7 +376,7 @@ TEST(PublisherTests, ChangeDefaultDataWriterQos)
     EXPECT_FALSE(wqos.writer_data_lifecycle().autodispose_unregistered_instances);
     // .publish_mode
     EXPECT_EQ(eprosima::fastdds::dds::ASYNCHRONOUS_PUBLISH_MODE, wqos.publish_mode().kind);
-    EXPECT_EQ(0, strcmp(wqos.publish_mode().flow_controller_name, "Prueba"));
+    EXPECT_EQ(true, wqos.publish_mode().flow_controller_name == "Prueba");
     count = 1;
     for (auto prop : wqos.properties().properties())
     {
@@ -429,7 +411,7 @@ TEST(PublisherTests, ChangeDefaultDataWriterQos)
     // .endpoint
     EXPECT_EQ(1, wqos.endpoint().user_defined_id);
     EXPECT_EQ(2, wqos.endpoint().entity_id);
-    EXPECT_EQ(eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE, wqos.endpoint().history_memory_policy);
+    EXPECT_EQ(eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE, wqos.endpoint().history_memory_policy);
     // . writer_resource_limits
     EXPECT_EQ(30, wqos.writer_resource_limits().matched_subscriber_allocation.initial);
     EXPECT_EQ(300, wqos.writer_resource_limits().matched_subscriber_allocation.maximum);
@@ -440,27 +422,10 @@ TEST(PublisherTests, ChangeDefaultDataWriterQos)
 
     EXPECT_TRUE(qos == wqos);
 
-    ASSERT_TRUE(participant->delete_publisher(publisher) == ReturnCode_t::RETCODE_OK);
-    ASSERT_TRUE(DomainParticipantFactory::get_instance()->delete_participant(participant) == ReturnCode_t::RETCODE_OK);
+    ASSERT_TRUE(participant->delete_publisher(publisher) == RETCODE_OK);
+    ASSERT_TRUE(DomainParticipantFactory::get_instance()->delete_participant(participant) == RETCODE_OK);
 }
 
-
-TEST(PublisherTests, ChangePSMDefaultDataWriterQos)
-{
-    ::dds::domain::DomainParticipant participant = ::dds::domain::DomainParticipant(0, PARTICIPANT_QOS_DEFAULT);
-    ::dds::pub::Publisher publisher = ::dds::pub::Publisher(participant);
-
-    ::dds::pub::qos::DataWriterQos qos = publisher.default_datawriter_qos();
-    ASSERT_EQ(qos, DATAWRITER_QOS_DEFAULT);
-
-    qos.deadline().period = 540;
-
-    ASSERT_NO_THROW(publisher.default_datawriter_qos(qos));
-    ::dds::pub::qos::DataWriterQos wqos = publisher.default_datawriter_qos();
-
-    ASSERT_TRUE(qos == wqos);
-    ASSERT_EQ(wqos.deadline().period, 540);
-}
 
 TEST(PublisherTests, ChangePublisherQos)
 {
@@ -484,25 +449,9 @@ TEST(PublisherTests, ChangePublisherQos)
     ASSERT_TRUE(qos == pqos);
     ASSERT_EQ(pqos.entity_factory().autoenable_created_entities, false);
 
-    ASSERT_TRUE(participant->delete_publisher(publisher) == ReturnCode_t::RETCODE_OK);
-    ASSERT_TRUE(DomainParticipantFactory::get_instance()->delete_participant(participant) == ReturnCode_t::RETCODE_OK);
+    ASSERT_TRUE(participant->delete_publisher(publisher) == RETCODE_OK);
+    ASSERT_TRUE(DomainParticipantFactory::get_instance()->delete_participant(participant) == RETCODE_OK);
 
-}
-
-TEST(PublisherTests, ChangePSMPublisherQos)
-{
-    ::dds::domain::DomainParticipant participant = ::dds::domain::DomainParticipant(0, PARTICIPANT_QOS_DEFAULT);
-    ::dds::pub::Publisher publisher = ::dds::pub::Publisher(participant);
-
-    ::dds::pub::qos::PublisherQos qos = publisher.qos();
-    ASSERT_EQ(qos, PUBLISHER_QOS_DEFAULT);
-
-    qos.entity_factory().autoenable_created_entities = false;
-    publisher.qos(qos);
-    ::dds::pub::qos::PublisherQos pqos = publisher.qos();
-
-    ASSERT_TRUE(qos == pqos);
-    ASSERT_EQ(pqos.entity_factory().autoenable_created_entities, false);
 }
 
 TEST(PublisherTests, CreateDataWriter)
@@ -523,10 +472,10 @@ TEST(PublisherTests, CreateDataWriter)
     DataWriter* datawriter = publisher->create_datawriter(topic, DATAWRITER_QOS_DEFAULT);
     ASSERT_NE(datawriter, nullptr);
 
-    ASSERT_EQ(publisher->delete_datawriter(datawriter), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(participant->delete_publisher(publisher), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(participant->delete_topic(topic), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(publisher->delete_datawriter(datawriter), RETCODE_OK);
+    ASSERT_EQ(participant->delete_publisher(publisher), RETCODE_OK);
+    ASSERT_EQ(participant->delete_topic(topic), RETCODE_OK);
+    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), RETCODE_OK);
 }
 
 void check_datawriter_with_profile (
@@ -536,54 +485,10 @@ void check_datawriter_with_profile (
     DataWriterQos qos;
     datawriter->get_qos(qos);
 
-    PublisherAttributes publisher_atts;
-    XMLProfileManager::fillPublisherAttributes(profile_name, publisher_atts);
-
-    //Values taken from profile
-    ASSERT_TRUE(
-        qos.writer_resource_limits().matched_subscriber_allocation ==
-        publisher_atts.matched_subscriber_allocation);
-    if (publisher_atts.qos.m_partition.names().empty())
-    {
-        ASSERT_TRUE(qos.properties() == publisher_atts.properties);
-    }
-    else
-    {
-        ASSERT_NE(PropertyPolicyHelper::find_property(qos.properties(), "partitions"), nullptr);
-        for (auto partition: publisher_atts.qos.m_partition.names())
-        {
-            ASSERT_NE(PropertyPolicyHelper::find_property(qos.properties(), "partitions")->find(
-                        partition), std::string::npos);
-        }
-    }
-    ASSERT_TRUE(qos.throughput_controller() == publisher_atts.throughputController);
-    ASSERT_TRUE(qos.endpoint().unicast_locator_list == publisher_atts.unicastLocatorList);
-    ASSERT_TRUE(qos.endpoint().multicast_locator_list == publisher_atts.multicastLocatorList);
-    ASSERT_TRUE(qos.endpoint().remote_locator_list == publisher_atts.remoteLocatorList);
-    ASSERT_TRUE(qos.endpoint().history_memory_policy == publisher_atts.historyMemoryPolicy);
-    ASSERT_TRUE(qos.endpoint().user_defined_id == publisher_atts.getUserDefinedID());
-    ASSERT_TRUE(qos.endpoint().entity_id == publisher_atts.getEntityID());
-    ASSERT_TRUE(qos.reliable_writer_qos().times == publisher_atts.times);
-    ASSERT_TRUE(qos.reliable_writer_qos().disable_positive_acks == publisher_atts.qos.m_disablePositiveACKs);
-    ASSERT_TRUE(qos.durability() == publisher_atts.qos.m_durability);
-    ASSERT_TRUE(qos.durability_service() == publisher_atts.qos.m_durabilityService);
-    ASSERT_TRUE(qos.deadline() == publisher_atts.qos.m_deadline);
-    ASSERT_TRUE(qos.latency_budget() == publisher_atts.qos.m_latencyBudget);
-    ASSERT_TRUE(qos.liveliness() == publisher_atts.qos.m_liveliness);
-    ASSERT_TRUE(qos.reliability() == publisher_atts.qos.m_reliability);
-    ASSERT_TRUE(qos.lifespan() == publisher_atts.qos.m_lifespan);
-    ASSERT_TRUE(qos.user_data().data_vec() == publisher_atts.qos.m_userData.data_vec());
-    ASSERT_TRUE(qos.ownership() == publisher_atts.qos.m_ownership);
-    ASSERT_TRUE(qos.ownership_strength() == publisher_atts.qos.m_ownershipStrength);
-    ASSERT_TRUE(qos.destination_order() == publisher_atts.qos.m_destinationOrder);
-    ASSERT_TRUE(qos.representation() == publisher_atts.qos.representation);
-    ASSERT_TRUE(qos.publish_mode() == publisher_atts.qos.m_publishMode);
-    ASSERT_TRUE(qos.history() == publisher_atts.topic.historyQos);
-    ASSERT_TRUE(qos.resource_limits() == publisher_atts.topic.resourceLimitsQos);
-
-    //Values not implemented on attributes (taken from default QoS)
-    ASSERT_TRUE(qos.transport_priority() == DATAWRITER_QOS_DEFAULT.transport_priority());
-    ASSERT_TRUE(qos.writer_data_lifecycle() == DATAWRITER_QOS_DEFAULT.writer_data_lifecycle());
+    DataWriterQos profile_qos;
+    EXPECT_EQ(datawriter->get_publisher()->get_datawriter_qos_from_profile(profile_name, profile_qos),
+            RETCODE_OK);
+    EXPECT_EQ(qos, profile_qos);
 }
 
 TEST(PublisherTests, CreateDataWriterWithProfile)
@@ -600,17 +505,17 @@ TEST(PublisherTests, CreateDataWriterWithProfile)
     DataWriter* default_datawriter = publisher->create_datawriter(topic, DATAWRITER_QOS_DEFAULT);
     ASSERT_NE(default_datawriter, nullptr);
     check_datawriter_with_profile(default_datawriter, "test_default_publisher_profile");
-    ASSERT_TRUE(publisher->delete_datawriter(default_datawriter) == ReturnCode_t::RETCODE_OK);
+    ASSERT_TRUE(publisher->delete_datawriter(default_datawriter) == RETCODE_OK);
 
     //participant using non-default profile
     DataWriter* datawriter = publisher->create_datawriter_with_profile(topic, "test_publisher_profile");
     ASSERT_NE(datawriter, nullptr);
     check_datawriter_with_profile(datawriter, "test_publisher_profile");
-    ASSERT_TRUE(publisher->delete_datawriter(datawriter) == ReturnCode_t::RETCODE_OK);
+    ASSERT_TRUE(publisher->delete_datawriter(datawriter) == RETCODE_OK);
 
-    ASSERT_EQ(participant->delete_publisher(publisher), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(participant->delete_topic(topic), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(participant->delete_publisher(publisher), RETCODE_OK);
+    ASSERT_EQ(participant->delete_topic(topic), RETCODE_OK);
+    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), RETCODE_OK);
 }
 
 TEST(PublisherTests, CreateDataWriterWithProfileFromString)
@@ -632,17 +537,17 @@ TEST(PublisherTests, CreateDataWriterWithProfileFromString)
     DataWriter* default_datawriter = publisher->create_datawriter(topic, DATAWRITER_QOS_DEFAULT);
     ASSERT_NE(default_datawriter, nullptr);
     check_datawriter_with_profile(default_datawriter, "test_default_publisher_profile_string");
-    ASSERT_TRUE(publisher->delete_datawriter(default_datawriter) == ReturnCode_t::RETCODE_OK);
+    ASSERT_TRUE(publisher->delete_datawriter(default_datawriter) == RETCODE_OK);
 
     //participant using non-default profile
     DataWriter* datawriter = publisher->create_datawriter_with_profile(topic, "test_publisher_profile_string");
     ASSERT_NE(datawriter, nullptr);
     check_datawriter_with_profile(datawriter, "test_publisher_profile_string");
-    ASSERT_TRUE(publisher->delete_datawriter(datawriter) == ReturnCode_t::RETCODE_OK);
+    ASSERT_TRUE(publisher->delete_datawriter(datawriter) == RETCODE_OK);
 
-    ASSERT_EQ(participant->delete_publisher(publisher), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(participant->delete_topic(topic), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(participant->delete_publisher(publisher), RETCODE_OK);
+    ASSERT_EQ(participant->delete_topic(topic), RETCODE_OK);
+    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), RETCODE_OK);
 }
 
 TEST(PublisherTests, GetDataWriterProfileQos)
@@ -662,7 +567,7 @@ TEST(PublisherTests, GetDataWriterProfileQos)
     DataWriterQos qos;
     EXPECT_EQ(
         publisher->get_datawriter_qos_from_profile("test_publisher_profile", qos),
-        ReturnCode_t::RETCODE_OK);
+        RETCODE_OK);
 
     //Datawriter using the extracted qos
     DataWriter* datawriter = publisher->create_datawriter(topic, qos);
@@ -673,13 +578,13 @@ TEST(PublisherTests, GetDataWriterProfileQos)
     // Test return when a non-existent profile is used
     EXPECT_EQ(
         publisher->get_datawriter_qos_from_profile("incorrect_profile_name", qos),
-        ReturnCode_t::RETCODE_BAD_PARAMETER);
+        RETCODE_BAD_PARAMETER);
 
     // Clean up
-    ASSERT_EQ(publisher->delete_datawriter(datawriter), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(participant->delete_publisher(publisher), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(participant->delete_topic(topic), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(publisher->delete_datawriter(datawriter), RETCODE_OK);
+    ASSERT_EQ(participant->delete_publisher(publisher), RETCODE_OK);
+    ASSERT_EQ(participant->delete_topic(topic), RETCODE_OK);
+    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), RETCODE_OK);
 }
 
 TEST(PublisherTests, DeletePublisherWithWriters)
@@ -700,13 +605,13 @@ TEST(PublisherTests, DeletePublisherWithWriters)
     DataWriter* datawriter = publisher->create_datawriter(topic, DATAWRITER_QOS_DEFAULT);
     ASSERT_NE(datawriter, nullptr);
 
-    ASSERT_EQ(participant->delete_publisher(publisher), ReturnCode_t::RETCODE_PRECONDITION_NOT_MET);
+    ASSERT_EQ(participant->delete_publisher(publisher), RETCODE_PRECONDITION_NOT_MET);
 
-    ASSERT_EQ(publisher->delete_datawriter(datawriter), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(participant->delete_publisher(publisher), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(publisher->delete_datawriter(datawriter), RETCODE_OK);
+    ASSERT_EQ(participant->delete_publisher(publisher), RETCODE_OK);
 
-    ASSERT_EQ(participant->delete_topic(topic), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(participant->delete_topic(topic), RETCODE_OK);
+    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), RETCODE_OK);
 }
 
 
@@ -715,7 +620,7 @@ void set_listener_test (
         PublisherListener* listener,
         StatusMask mask)
 {
-    ASSERT_EQ(publisher->set_listener(listener, mask), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(publisher->set_listener(listener, mask), RETCODE_OK);
     ASSERT_EQ(publisher->get_status_mask(), mask);
 }
 
@@ -759,8 +664,8 @@ TEST(PublisherTests, SetListener)
                 std::get<2>(testing_case));
     }
 
-    ASSERT_EQ(participant->delete_publisher(publisher), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(participant->delete_publisher(publisher), RETCODE_OK);
+    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), RETCODE_OK);
 }
 
 // Delete contained entities test
@@ -792,28 +697,27 @@ TEST(Publisher, DeleteContainedEntities)
 
     data_writer_list.clear();
     void* loan_data;
-    ASSERT_EQ(data_writer_bar->loan_sample(loan_data), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(data_writer_bar->loan_sample(loan_data), RETCODE_OK);
 
-    ASSERT_EQ(publisher->delete_contained_entities(), ReturnCode_t::RETCODE_PRECONDITION_NOT_MET);
+    ASSERT_EQ(publisher->delete_contained_entities(), RETCODE_PRECONDITION_NOT_MET);
     publisher->get_datawriters(data_writer_list);
     ASSERT_EQ(data_writer_list.size(), 2u);
 
     data_writer_list.clear();
     data_writer_bar->discard_loan(loan_data);
 
-    ASSERT_EQ(publisher->delete_contained_entities(), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(publisher->delete_contained_entities(), RETCODE_OK);
     publisher->get_datawriters(data_writer_list);
     ASSERT_FALSE(publisher->has_datawriters());
 }
 
 /*
  * This test checks that the Publisher methods defined in the standard not yet implemented in FastDDS return
- * ReturnCode_t::RETCODE_UNSUPPORTED. The following methods are checked:
- * 1. copy_from_topic_qos
- * 2. suspend_publications
- * 3. resume_publications
- * 4. begin_coherent_changes
- * 5. end_coherent_changes
+ * RETCODE_UNSUPPORTED. The following methods are checked:
+ * 1. suspend_publications
+ * 2. resume_publications
+ * 3. begin_coherent_changes
+ * 4. end_coherent_changes
  */
 TEST(PublisherTests, UnsupportedPublisherMethods)
 {
@@ -825,14 +729,93 @@ TEST(PublisherTests, UnsupportedPublisherMethods)
 
     fastdds::dds::DataWriterQos writer_qos;
     fastdds::dds::TopicQos topic_qos;
-    EXPECT_EQ(ReturnCode_t::RETCODE_UNSUPPORTED, publisher->copy_from_topic_qos(writer_qos, topic_qos));
-    EXPECT_EQ(ReturnCode_t::RETCODE_UNSUPPORTED, publisher->suspend_publications());
-    EXPECT_EQ(ReturnCode_t::RETCODE_UNSUPPORTED, publisher->resume_publications());
-    EXPECT_EQ(ReturnCode_t::RETCODE_UNSUPPORTED, publisher->begin_coherent_changes());
-    EXPECT_EQ(ReturnCode_t::RETCODE_UNSUPPORTED, publisher->end_coherent_changes());
+    EXPECT_EQ(RETCODE_UNSUPPORTED, publisher->suspend_publications());
+    EXPECT_EQ(RETCODE_UNSUPPORTED, publisher->resume_publications());
+    EXPECT_EQ(RETCODE_UNSUPPORTED, publisher->begin_coherent_changes());
+    EXPECT_EQ(RETCODE_UNSUPPORTED, publisher->end_coherent_changes());
 
-    ASSERT_EQ(participant->delete_publisher(publisher), ReturnCode_t::RETCODE_OK);
-    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), ReturnCode_t::RETCODE_OK);
+    ASSERT_EQ(participant->delete_publisher(publisher), RETCODE_OK);
+    ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(participant), RETCODE_OK);
+}
+
+/**
+ * Utility class to set some values other than default to those Qos common to Topic and DataWriter.
+ *
+ * This is a class instead of a free function to avoid linking with its TestsSubscriber counterpart.
+ */
+class TestsPublisherQosCommonUtils
+{
+public:
+
+    template<typename T>
+    static void set_common_qos(
+            T& qos)
+    {
+        qos.durability_service().history_kind = KEEP_ALL_HISTORY_QOS;
+        qos.reliability().kind = BEST_EFFORT_RELIABILITY_QOS;
+        qos.durability().kind = VOLATILE_DURABILITY_QOS;
+        qos.deadline().period = {0, 500000000};
+        qos.latency_budget().duration = 0;
+        qos.liveliness().kind = MANUAL_BY_PARTICIPANT_LIVELINESS_QOS;
+        qos.destination_order().kind = BY_SOURCE_TIMESTAMP_DESTINATIONORDER_QOS;
+        qos.resource_limits().max_samples = 1000;
+        qos.transport_priority().value = 1;
+        qos.ownership().kind = EXCLUSIVE_OWNERSHIP_QOS;
+        qos.representation().m_value.push_back(DataRepresentationId_t::XCDR2_DATA_REPRESENTATION);
+        qos.destination_order().kind = eprosima::fastdds::dds::BY_SOURCE_TIMESTAMP_DESTINATIONORDER_QOS;
+        qos.history().kind = KEEP_ALL_HISTORY_QOS;
+        qos.lifespan().duration = {5, 0};
+    }
+
+};
+
+/*
+ * This test:
+ *   1. Creates a Topic with custom Qos
+ *   2. Creates a control DataWriterQos in which the non-common Qos are set to a value different from the default
+ *   3. Creates a test DataWriterQos and assigns it the value of the control Qos
+ *   4. Updates the control Qos' common Qos with the same values used in the Topic Qos
+ *   5. Calls Publisher::copy_from_topic_qos() with the test Qos and the Topic Qos
+ *   6. Checks that the resulting test Qos has the same values as the control Qos
+ */
+TEST(PublisherTests, datawriter_copy_from_topic_qos)
+{
+    /* Set Topic Qos different from default */
+    TopicQos topic_qos;
+    TestsPublisherQosCommonUtils::set_common_qos(topic_qos);
+
+    /* Create the publisher under test */
+    DomainParticipant* participant =
+            DomainParticipantFactory::get_instance()->create_participant(0, PARTICIPANT_QOS_DEFAULT);
+    ASSERT_NE(participant, nullptr);
+
+    Publisher* publisher = participant->create_publisher(PUBLISHER_QOS_DEFAULT);
+    ASSERT_NE(publisher, nullptr);
+
+    /* Create control and test Qos instances */
+    // Override non-common Qos with values different from the default on the control Qos
+    DataWriterQos control_qos;
+    control_qos.ownership_strength().value = 1;
+    control_qos.publish_mode().kind = eprosima::fastdds::dds::ASYNCHRONOUS_PUBLISH_MODE;
+    control_qos.writer_data_lifecycle().autodispose_unregistered_instances = false;
+    control_qos.user_data().push_back(0);
+    control_qos.endpoint().entity_id = 1;
+    control_qos.writer_resource_limits().matched_subscriber_allocation =
+            eprosima::fastdds::ResourceLimitedContainerConfig::fixed_size_configuration(1u);
+    control_qos.data_sharing().off();
+
+    // Copy control Qos to test Qos. At this point, test_qos has non-default values for the non-common Qos,
+    // and default values for the common Qos
+    DataWriterQos test_qos = control_qos;
+
+    // Set common Qos to the control Qos with the same values used in the Topic Qos
+    TestsPublisherQosCommonUtils::set_common_qos(control_qos);
+
+    /* Function under test call */
+    publisher->copy_from_topic_qos(test_qos, topic_qos);
+
+    /* Check that the test Qos has the same values as the control Qos */
+    ASSERT_EQ(control_qos, test_qos);
 }
 
 } // namespace dds

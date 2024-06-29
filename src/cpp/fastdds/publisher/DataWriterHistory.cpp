@@ -23,17 +23,16 @@
 
 #include <fastdds/dds/common/InstanceHandle.hpp>
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/common/Time_t.h>
-#include <fastdds/rtps/writer/RTPSWriter.h>
+#include <fastdds/rtps/common/Time_t.hpp>
+#include <fastdds/rtps/writer/RTPSWriter.hpp>
 
 namespace eprosima {
 namespace fastdds {
 namespace dds {
 
-using namespace eprosima::fastrtps;
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds::rtps;
 
-static HistoryAttributes to_history_attributes(
+HistoryAttributes DataWriterHistory::to_history_attributes(
         const TopicAttributes& topic_att,
         uint32_t payloadMaxSize,
         MemoryManagementPolicy_t mempolicy)
@@ -57,11 +56,13 @@ static HistoryAttributes to_history_attributes(
 }
 
 DataWriterHistory::DataWriterHistory(
+        const std::shared_ptr<IPayloadPool>& payload_pool,
+        const std::shared_ptr<IChangePool>& change_pool,
         const TopicAttributes& topic_att,
         uint32_t payloadMaxSize,
         MemoryManagementPolicy_t mempolicy,
-        std::function<void (const fastrtps::rtps::InstanceHandle_t&)> unack_sample_remove_functor)
-    : WriterHistory(to_history_attributes(topic_att, payloadMaxSize, mempolicy))
+        std::function<void (const fastdds::rtps::InstanceHandle_t&)> unack_sample_remove_functor)
+    : WriterHistory(to_history_attributes(topic_att, payloadMaxSize, mempolicy), payload_pool, change_pool)
     , history_qos_(topic_att.historyQos)
     , resource_limited_qos_(topic_att.resourceLimitsQos)
     , topic_att_(topic_att)
@@ -125,8 +126,8 @@ bool DataWriterHistory::register_instance(
     return result;
 }
 
-fastrtps::rtps::SerializedPayload_t* DataWriterHistory::get_key_value(
-        const fastrtps::rtps::InstanceHandle_t& handle)
+fastdds::rtps::SerializedPayload_t* DataWriterHistory::get_key_value(
+        const fastdds::rtps::InstanceHandle_t& handle)
 {
     t_m_Inst_Caches::iterator vit = keyed_changes_.find(handle);
     if (vit != keyed_changes_.end() && vit->second.is_registered())
@@ -584,5 +585,5 @@ bool DataWriterHistory::change_is_acked_or_fully_delivered(
 }
 
 }  // namespace dds
-}  // namespace fastrtps
+}  // namespace fastdds
 }  // namespace eprosima

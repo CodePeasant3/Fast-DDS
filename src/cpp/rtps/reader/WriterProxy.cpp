@@ -20,21 +20,19 @@
 #include <rtps/reader/WriterProxy.h>
 
 #include <fastdds/dds/log/Log.hpp>
-
-#include <fastdds/rtps/builtin/data/WriterProxyData.h>
-#include <fastdds/rtps/messages/RTPSMessageCreator.h>
-#include <fastdds/rtps/reader/StatefulReader.h>
-#include <fastdds/rtps/resources/TimedEvent.h>
-
-#include <fastrtps/utils/TimeConversion.h>
-
-#include <rtps/network/utils/external_locators.hpp>
-#include <rtps/participant/RTPSParticipantImpl.h>
+#include <fastdds/rtps/builtin/data/WriterProxyData.hpp>
+#include <fastdds/rtps/writer/RTPSWriter.hpp>
 
 #include "rtps/RTPSDomainImpl.hpp"
 #include "utils/collections/node_size_helpers.hpp"
+#include <rtps/messages/RTPSMessageCreator.hpp>
+#include <rtps/network/utils/external_locators.hpp>
+#include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/resources/TimedEvent.h>
+#include <rtps/reader/StatefulReader.hpp>
 
-#if !defined(NDEBUG) && !defined(ANDROID) && defined(FASTRTPS_SOURCE) && defined(__unix__)
+#if !defined(NDEBUG) && !defined(ANDROID) && defined(FASTDDS_SOURCE) && defined(__unix__)
 #define SHOULD_DEBUG_LINUX
 #endif // SHOULD_DEBUG_LINUX
 
@@ -47,7 +45,7 @@
 #endif // SHOULD_DEBUG_LINUX
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 WriterProxy::~WriterProxy()
@@ -86,7 +84,7 @@ WriterProxy::WriterProxy(
     , guid_prefix_as_vector_(ResourceLimitedContainerConfig::fixed_size_configuration(1u))
     , is_on_same_process_(false)
     , ownership_strength_(0)
-    , liveliness_kind_(AUTOMATIC_LIVELINESS_QOS)
+    , liveliness_kind_(dds::AUTOMATIC_LIVELINESS_QOS)
     , locators_entry_(loc_alloc.max_unicast_locators, loc_alloc.max_multicast_locators)
     , is_datasharing_writer_(false)
     , received_at_least_one_heartbeat_(false)
@@ -123,14 +121,14 @@ void WriterProxy::start(
         const SequenceNumber_t& initial_sequence,
         bool is_datasharing)
 {
-    using fastdds::rtps::network::external_locators::filter_remote_locators;
+    using network::external_locators::filter_remote_locators;
 
 #ifdef SHOULD_DEBUG_LINUX
     assert(get_mutex_owner() == get_thread_id());
 #endif // SHOULD_DEBUG_LINUX
 
-    heartbeat_response_->update_interval(reader_->getTimes().heartbeatResponseDelay);
-    initial_acknack_->update_interval(reader_->getTimes().initialAcknackDelay);
+    heartbeat_response_->update_interval(reader_->getTimes().heartbeat_response_delay);
+    initial_acknack_->update_interval(reader_->getTimes().initial_acknack_delay);
 
     locators_entry_.remote_guid = attributes.guid();
     guid_as_vector_.push_back(attributes.guid());
@@ -154,7 +152,7 @@ void WriterProxy::start(
 void WriterProxy::update(
         const WriterProxyData& attributes)
 {
-    using fastdds::rtps::network::external_locators::filter_remote_locators;
+    using network::external_locators::filter_remote_locators;
 
 #ifdef SHOULD_DEBUG_LINUX
     assert(get_mutex_owner() == get_thread_id());
@@ -622,7 +620,8 @@ void WriterProxy::update_heartbeat_response_interval(
 }
 
 bool WriterProxy::send(
-        CDRMessage_t* message,
+        const std::vector<eprosima::fastdds::rtps::NetworkBuffer>& buffers,
+        const uint32_t& total_bytes,
         std::chrono::steady_clock::time_point max_blocking_time_point) const
 {
     if (is_on_same_process_)
@@ -632,7 +631,8 @@ bool WriterProxy::send(
 
     const ResourceLimitedVector<Locator_t>& remote_locators = remote_locators_shrinked();
 
-    return reader_->send_sync_nts(message,
+    return reader_->send_sync_nts(buffers,
+                   total_bytes,
                    Locators(remote_locators.begin()),
                    Locators(remote_locators.end()),
                    max_blocking_time_point);
@@ -653,5 +653,5 @@ int WriterProxy::get_thread_id() const
 #endif // SHOULD_DEBUG_LINUX
 
 } /* namespace rtps */
-} /* namespace fastrtps */
+} /* namespace fastdds */
 } /* namespace eprosima */

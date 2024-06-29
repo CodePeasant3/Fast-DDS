@@ -17,9 +17,7 @@
  *
  */
 
-#include <fastdds/rtps/builtin/data/ParticipantProxyData.h>
-
-#include <fastdds/rtps/resources/ResourceEvent.h>
+#include <fastdds/rtps/builtin/data/ParticipantProxyData.hpp>
 
 #include <rtps/participant/RTPSParticipantImpl.h>
 
@@ -27,6 +25,7 @@
 
 #include <rtps/builtin/discovery/participant/timedevent/DServerEvent.hpp>
 #include <rtps/builtin/discovery/participant/PDPServer.hpp>
+#include <rtps/resources/ResourceEvent.h>
 
 namespace eprosima {
 namespace fastdds {

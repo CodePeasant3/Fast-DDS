@@ -78,53 +78,31 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/regressions" DESTINATION "${CMAKE_CURRENT
 ###################################  XMLProfileParserTests  ####################################################
 set(XMLPROFILEPARSER_SOURCE
     XMLProfileParserTests.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/AnnotationDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/AnnotationParameterValue.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/BuiltinAnnotationsTypeObject.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicData.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicDataFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicDataPtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicPubSubType.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicType.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilder.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilderFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilderPtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeMember.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypePtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/MemberDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeIdentifier.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeIdentifierTypes.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeNamesGenerator.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObject.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObjectFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObjectHashId.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypesBase.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/publisher/qos/WriterQos.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/subscriber/qos/ReaderQos.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/topic/TopicDataType.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/xtypes/exception/Exception.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/attributes/ThreadSettings.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/LocatorWithMask.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/SerializedPayload.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/Time_t.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/flowcontrol/FlowControllerConsts.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/flowcontrol/ThroughputControllerDescriptor.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/utils/netmask_filter.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/utils/network.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetmaskFilterKind.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetworkInterface.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetworkInterfaceWithFilter.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/PortBasedTransportDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLDynamicParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLElementParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLParserCommon.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLProfileManager.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/IPFinder.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/IPLocator.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/md5.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/utils/string_convert.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/SystemInfo.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/UnitsParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLDynamicParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLElementParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLParserCommon.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLProfileManager.cpp
     )
 
 # External sources
@@ -153,9 +131,13 @@ target_compile_definitions(XMLProfileParserTests PRIVATE
     ASIO_STANDALONE
     $<$<AND:$<NOT:$<BOOL:${WIN32}>>,$<STREQUAL:"${CMAKE_BUILD_TYPE}","Debug">>:__DEBUG>
     $<$<BOOL:${INTERNAL_DEBUG}>:__INTERNALDEBUG> # Internal debug activated.
+    $<$<BOOL:${MSVC}>:NOMINMAX> # avoid conflic with std::min & std::max in visual studio
     )
 target_include_directories(XMLProfileParserTests PRIVATE
+    ${PROJECT_SOURCE_DIR}/test/mock/dds/TypeObjectRegistry
+    ${PROJECT_SOURCE_DIR}/test/mock/dds/TypeObjectUtils
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/Log
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/RTPSDomainImpl # Dependency of fastdds::xtypes::type_representation
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/SharedMemTransportDescriptor
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/TCPTransportDescriptor
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/TCPv4TransportDescriptor
@@ -164,7 +146,8 @@ target_include_directories(XMLProfileParserTests PRIVATE
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/UDPv4TransportDescriptor
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/UDPv6TransportDescriptor
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/RTPSParticipantAttributes
-    ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_BINARY_DIR}/include
     ${PROJECT_SOURCE_DIR}/src/cpp
     ${Asio_INCLUDE_DIR}
     $<$<BOOL:${ANDROID}>:${ANDROID_IFADDRS_INCLUDE_DIR}>
@@ -175,6 +158,7 @@ target_link_libraries(XMLProfileParserTests GTest::gmock
     $<$<BOOL:${WIN32}>:ws2_32>
     ${TINYXML2_LIBRARY}
     fastcdr
+    fastdds::xtypes::dynamic-types::impl
     )
 if(QNX)
     target_link_libraries(XMLProfileParserTests socket)
@@ -188,58 +172,31 @@ gtest_discover_tests(XMLProfileParserTests)
 set(XMLPARSER_SOURCE
     XMLParserTests.cpp
     XMLElementParserTests.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/AnnotationDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/AnnotationParameterValue.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/BuiltinAnnotationsTypeObject.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicData.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicDataFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicDataPtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicPubSubType.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicType.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilder.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilderFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilderPtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeMember.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypePtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/MemberDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeIdentifier.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeIdentifierTypes.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeNamesGenerator.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObject.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObjectFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObjectHashId.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypesBase.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/FileConsumer.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/Log.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/OStreamConsumer.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/StdoutConsumer.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/StdoutErrConsumer.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/publisher/qos/WriterQos.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/subscriber/qos/ReaderQos.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/topic/TopicDataType.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/xtypes/exception/Exception.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/attributes/ThreadSettings.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/LocatorWithMask.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/SerializedPayload.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/Time_t.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/flowcontrol/FlowControllerConsts.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/flowcontrol/ThroughputControllerDescriptor.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/utils/netmask_filter.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/utils/network.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetmaskFilterKind.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetworkInterface.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetworkInterfaceWithFilter.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/PortBasedTransportDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLDynamicParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLElementParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLParserCommon.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLProfileManager.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/IPFinder.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/IPLocator.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/md5.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/utils/string_convert.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/SystemInfo.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/UnitsParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLDynamicParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLElementParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLParserCommon.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLProfileManager.cpp
     )
 
 # External sources
@@ -263,8 +220,12 @@ target_compile_definitions(XMLParserTests PRIVATE
     ASIO_STANDALONE
     $<$<AND:$<NOT:$<BOOL:${WIN32}>>,$<STREQUAL:"${CMAKE_BUILD_TYPE}","Debug">>:__DEBUG>
     $<$<BOOL:${INTERNAL_DEBUG}>:__INTERNALDEBUG> # Internal debug activated.
+    $<$<BOOL:${MSVC}>:NOMINMAX> # avoid conflic with std::min & std::max in visual studio
     )
 target_include_directories(XMLParserTests PRIVATE
+    ${PROJECT_SOURCE_DIR}/test/mock/dds/TypeObjectRegistry
+    ${PROJECT_SOURCE_DIR}/test/mock/dds/TypeObjectUtils
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/RTPSDomainImpl # Dependency of fastdds::xtypes::type_representation
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/SharedMemTransportDescriptor
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/TCPTransportDescriptor
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/TCPv4TransportDescriptor
@@ -285,6 +246,8 @@ target_link_libraries(XMLParserTests GTest::gtest
     $<$<BOOL:${WIN32}>:ws2_32>
     ${TINYXML2_LIBRARY}
     fastcdr
+    fastdds::log
+    fastdds::xtypes::dynamic-types::impl
     )
 if(QNX)
     target_link_libraries(XMLParserTests socket)
@@ -295,7 +258,6 @@ gtest_discover_tests(XMLParserTests)
 #######################################  XMLTreeTests  #########################################################
 set(XMLTREE_SOURCE
     XMLTreeTests.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/utils/string_convert.cpp
     )
 
 if(ANDROID)
@@ -314,6 +276,7 @@ target_compile_definitions(XMLTreeTests PRIVATE
 target_include_directories(XMLTreeTests PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src/cpp
     $<$<BOOL:${ANDROID}>:${ANDROID_IFADDRS_INCLUDE_DIR}>
     )
 
@@ -328,38 +291,13 @@ gtest_discover_tests(XMLTreeTests)
 ###################################  XMLENDPOINTPARSERTESTS  ###################################################
 set(XMLENDPOINTPARSERTESTS_SOURCE
     XMLEndpointParserTests.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/AnnotationDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/AnnotationParameterValue.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/BuiltinAnnotationsTypeObject.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicData.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicDataFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicDataPtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicPubSubType.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicType.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilder.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilderFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilderPtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeMember.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypePtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/MemberDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeIdentifier.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeIdentifierTypes.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeNamesGenerator.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObject.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObjectFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObjectHashId.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypesBase.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/FileConsumer.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/Log.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/OStreamConsumer.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/StdoutConsumer.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/StdoutErrConsumer.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/publisher/qos/WriterQos.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/subscriber/qos/ReaderQos.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/topic/TopicDataType.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/xtypes/exception/Exception.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/attributes/ThreadSettings.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/LocatorWithMask.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/SerializedPayload.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/Time_t.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/flowcontrol/FlowControllerConsts.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/utils/netmask_filter.cpp
@@ -368,13 +306,15 @@ set(XMLENDPOINTPARSERTESTS_SOURCE
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetworkInterface.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetworkInterfaceWithFilter.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/PortBasedTransportDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLElementParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLEndpointParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLParserCommon.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/utils/md5.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/utils/UnitsParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLElementParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLEndpointParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLParserCommon.cpp
+
+    # locators
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/IPFinder.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/IPLocator.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/utils/md5.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/utils/string_convert.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/SystemInfo.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/UnitsParser.cpp
     )
@@ -400,7 +340,10 @@ target_compile_definitions(XMLEndpointParserTests PRIVATE
     ASIO_STANDALONE
     )
 target_include_directories(XMLEndpointParserTests PRIVATE
+    ${PROJECT_SOURCE_DIR}/test/mock/dds/TypeObjectRegistry
+    ${PROJECT_SOURCE_DIR}/test/mock/dds/TypeObjectUtils
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/ReaderProxyData
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/RTPSDomainImpl
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/SharedMemTransportDescriptor
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/TCPTransportDescriptor
     ${PROJECT_SOURCE_DIR}/test/mock/rtps/TCPv4TransportDescriptor
@@ -422,8 +365,99 @@ target_link_libraries(XMLEndpointParserTests GTest::gtest
     $<$<BOOL:${WIN32}>:ws2_32>
     ${TINYXML2_LIBRARY}
     fastcdr
+    fastdds::log
+    fastdds::xtypes::dynamic-types::impl
     )
 if(QNX)
     target_link_libraries(XMLEndpointParserTests socket)
 endif()
 gtest_discover_tests(XMLEndpointParserTests)
+
+######################################  XMLLoadFileTests  ######################################################
+set(XMLLOADFILE_SOURCE
+    XMLLoadFileTests.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/publisher/qos/WriterQos.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/subscriber/qos/ReaderQos.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/topic/TopicDataType.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/xtypes/exception/Exception.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/attributes/ThreadSettings.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/LocatorWithMask.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/SerializedPayload.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/Time_t.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/flowcontrol/FlowControllerConsts.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/utils/netmask_filter.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/utils/network.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetmaskFilterKind.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetworkInterface.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/network/NetworkInterfaceWithFilter.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/transport/PortBasedTransportDescriptor.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/utils/md5.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/utils/UnitsParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLDynamicParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLElementParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLParserCommon.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLProfileManager.cpp
+
+    # locators
+    ${PROJECT_SOURCE_DIR}/src/cpp/utils/IPFinder.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/utils/IPLocator.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/utils/SystemInfo.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/utils/UnitsParser.cpp
+    )
+
+# External sources
+if(TINYXML2_SOURCE_DIR)
+    list(APPEND XMLLOADFILE_SOURCE
+        ${TINYXML2_SOURCE_DIR}/tinyxml2.cpp
+        )
+endif()
+
+if(ANDROID)
+    if (ANDROID_NATIVE_API_LEVEL LESS 24)
+        list(APPEND XMLLOADFILE_SOURCE
+            ${ANDROID_IFADDRS_SOURCE_DIR}/ifaddrs.c
+            )
+    endif()
+endif()
+
+add_executable(XMLLoadFileTests ${XMLLOADFILE_SOURCE})
+target_compile_definitions(XMLLoadFileTests PRIVATE
+    BOOST_ASIO_STANDALONE
+    ASIO_STANDALONE
+    $<$<BOOL:${MSVC}>:NOMINMAX> # avoid conflict with std::min & std::max in visual studio
+    $<$<AND:$<NOT:$<BOOL:${WIN32}>>,$<STREQUAL:"${CMAKE_BUILD_TYPE}","Debug">>:__DEBUG>
+    $<$<BOOL:${INTERNAL_DEBUG}>:__INTERNALDEBUG> # Internal debug activated.
+    HAVE_LOG_NO_INFO=0 FASTDDS_ENFORCE_LOG_INFO # Need LOG_INFO in this test
+    )
+target_include_directories(XMLLoadFileTests PRIVATE
+    ${PROJECT_SOURCE_DIR}/test/mock/dds/TypeObjectRegistry
+    ${PROJECT_SOURCE_DIR}/test/mock/dds/TypeObjectUtils
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/RTPSDomainImpl # Dependency of fastdds::xtypes::type_representation
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/SharedMemTransportDescriptor
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/TCPTransportDescriptor
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/TCPv4TransportDescriptor
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/TCPv6TransportDescriptor
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/UDPTransportDescriptor
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/UDPv4TransportDescriptor
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/UDPv6TransportDescriptor
+    ${PROJECT_SOURCE_DIR}/test/mock/rtps/RTPSParticipantAttributes
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_BINARY_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src/cpp
+    ${Asio_INCLUDE_DIR}
+    $<$<BOOL:${ANDROID}>:${ANDROID_IFADDRS_INCLUDE_DIR}>
+    )
+
+target_link_libraries(XMLLoadFileTests GTest::gtest
+    $<$<BOOL:${WIN32}>:iphlpapi$<SEMICOLON>Shlwapi>
+    $<$<BOOL:${WIN32}>:ws2_32>
+    ${TINYXML2_LIBRARY}
+    fastcdr
+    fastdds::log
+    fastdds::xtypes::dynamic-types::impl
+    )
+if(QNX)
+    target_link_libraries(XMLLoadFileTests socket)
+endif()
+gtest_discover_tests(XMLLoadFileTests)

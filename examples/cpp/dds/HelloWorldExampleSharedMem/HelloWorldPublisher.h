@@ -20,7 +20,7 @@
 #ifndef HELLOWORLDPUBLISHER_H_
 #define HELLOWORLDPUBLISHER_H_
 
-#include "HelloWorldPubSubTypes.h"
+#include "HelloWorldPubSubTypes.hpp"
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/publisher/Publisher.hpp>
@@ -28,7 +28,7 @@
 #include <fastdds/dds/publisher/DataWriterListener.hpp>
 #include <fastdds/dds/topic/Topic.hpp>
 
-#include "HelloWorld.h"
+#include "HelloWorld.hpp"
 
 class HelloWorldPublisher
 {

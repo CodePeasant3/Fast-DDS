@@ -20,7 +20,7 @@
 #ifndef HELLOWORLDSUBSCRIBER_H_
 #define HELLOWORLDSUBSCRIBER_H_
 
-#include "HelloWorldPubSubTypes.h"
+#include "HelloWorldPubSubTypes.hpp"
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/subscriber/Subscriber.hpp>
@@ -28,7 +28,7 @@
 #include <fastdds/dds/subscriber/DataReaderListener.hpp>
 #include <fastdds/dds/subscriber/SampleInfo.hpp>
 
-#include "HelloWorld.h"
+#include "HelloWorld.hpp"
 
 #include <vector>
 

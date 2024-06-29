@@ -1,6 +1,74 @@
 Forthcoming
 -----------
 
+* Rename project to `fastdds`.
+* Rename environment variable to `FASTDDS_DEFAULT_PROFILES_FILE` and rename default XML profiles file to `FASTDDS_DEFAULT_PROFILES`.
+* Remove API marked as deprecated.
+* Removed deprecated FastRTPS API tests.
+* Removed no longer supported `FASTRTPS_API_TESTS` CMake options.
+* RTPS layer APIs refactor:
+  * RTPSReader, ReaderListener, ReaderAttributes:
+    * Several methods that were meant for internal use have been removed from public API
+    * All public methods now have `snake_case` names
+    * All public attributes now have `snake_case` names
+  * RTPSWriter, WriterHistory:
+    * The responsibility of managing both the `CacheChange` and `Payload` pools has been moved to the `WriterHistory`.
+* Public API that is no longer public:
+  * XML Parser API no longer public.
+  * ParticipantAttributes
+  * ReplierAttributes
+  * RequesterAttributes
+  * PublisherAttributes
+  * SubscriberAttributes
+  * All discovery implementation related API
+  * ProxyPool
+  * Semaphore
+  * MessageReceiver
+  * BuiltinProtocols
+  * Liveliness implementation related API
+  * shared_mutex
+  * StringMatching
+  * TimeConversion
+  * TypeLookupService
+  * DBQueue
+  * UnitsParser
+  * ReaderLocator
+  * ReaderProxy
+  * ChangeForReader
+* Public API headers .h have been renamed to .hpp
+* Added create participant methods that use environment XML profile for participant configuration.
+* New TypeObjectRegistry class to register/query TypeObjects/TypeIdentifiers.
+* New TypeObjectUtils class providing API to build and register TypeObjects/TypeIdentifiers.
+* Refactor Dynamic Language Binding API according to OMG XTypes v1.3 specification.
+* Refactor ReturnCode complying with OMG DDS specification.
+* Calling `DataReader::return_loan` returns `ReturnCode_t::RETCODE_OK` both for empty sequences and for sequences that were not loaned.
+* Refactor examples:
+  * Hello world example with wait-sets and environment XML profiles.
+  * Configuration example that condenses multiple QoS examples. Multiple configurations allowed through argument parsing.
+  * Custom payload pool example that uses a user-defined payload pool instead of the default
+  * X-Types example with dynamic type discovery and Hello world example compatibility.
+  * Custom Content filter example
+  * Delivery mechanisms example with SHM, UDP, TCP, data-sharing and intra-process mechanisms.
+* Removed `TypeConsistencyQos` from DataReader, and included `TypeConsistencyEnforcementQosPolicy` and `DataRepresentationQosPolicy`
+* Added new `flow_controller_descriptor_list` XML configuration, remove `ThroughtputController`.
+* Migrate `#define`s within `BuiltinEndpoints.hpp` to namespaced `constexpr` variables.
+* Make `StdoutErrConsumer` the default log consumer.
+* IPayloadPool refactor:
+  * `payload_owner` moved from `CacheChange_t` to `SerializedPayload_t`.
+  * `SerializedPayload_t` copies are now forbidden.
+  * Refactor of `get_payload` methods.
+* Use `PID_DOMAIN_ID` during PDP.
+* Creation of RTPS messages refactor:
+  * New Gather-send method is now used by default, avoiding an extra copy during the creation of the RTPS message.
+  * New attribute in `SendBuffersAllocationAttributes` to configure allocation of `NetworkBuffer` vector.
+  * `SenderResource` and Transport APIs now receive a collection of `NetworkBuffer` on their `send` method.
+* Migrate fastrtps namespace to fastdds
+* Migrate fastrtps `ResourceManagement` API from `rtps/resources` to `rtps/attributes`.
+* `const` qualify all data related inputs in DataWriter APIs
+* New `DomainParticipantExtendedQos` that includes both `DomainId` and `DomainParticipantQos` (extends `DomainParticipantFactory` API).
+* Make Blackbox tests not include any private API.
+* Remove all the private API include from Blackbox tests.
+
 Version 2.14.0
 --------------
 
@@ -31,12 +99,12 @@ Version 2.12.0
 * Exposed custom payload pool on DDS endpoints declaration
 * Processing environment variables on XML text
 * Upgrade to support Fast CDR v2.0.0.
-  Default encoding is XCDRv1 to maintain interoperability with previous Fast-DDS versions.
+  Default encoding is XCDRv1 to maintain interoperability with previous Fast DDS versions.
   Some concerns:
     - Data type source code generated with Fast DDS-Gen v2 should be regenerated using Fast DDS-Gen v3.
     - **API break**. Changed a `MEMBER_INVALID` identifier from a `#define` to a `constexpr`.
       Although this is not a new major version, using a `#define` is a bad conduct which was decided to be changed.
-      Note that new `constexpr` is inside namespace `eprosima::fastrtps::types`.
+      Note that new `constexpr` is inside namespace `eprosima::fastdds::types`.
 
 Version 2.11.0
 --------------
@@ -129,7 +197,7 @@ Version 2.6.0
 * Allow modifying the remote server locator in runtime.
 * Add physical information in DATA[p] using properties
 * Extension of `DISCOVERY_TOPIC` to include physical information about the discovered entity (ABI break)
-* Added methods getting `fastrtps::Time_t` as parameters instead of `fastrtps::rtps::Time_t` (API extension, API
+* Added methods getting `fastdds::Time_t` as parameters instead of `fastdds::rtps::Time_t` (API extension, API
   deprecations).
 * Changed signature of eprosima::fastdds::dds::DataWriter::dispose_w_timestamp (ABI break).
 * Added method getting `std::vector<InstanceHandle_t>&` instead of `std::vector<InstanceHandle_t*>&` (API extension, API
@@ -170,7 +238,7 @@ Version 2.3.0
 * Added support for unique network flows
 * Added reception_timestamp to `eprosima::fastdds::dds::SampleInfo` (ABI break)
 * Added `eprosima::fastdds::dds::DataReader::get_unread_count` (ABI break)
-* Refactor `eprosima::fastrtps::type::ReturnCode_t`. Now the constant global objects are no longer available (ABI break)
+* Refactor `eprosima::fastdds::type::ReturnCode_t`. Now the constant global objects are no longer available (ABI break)
 * Performance tests refactored to use DDS-PIM high-level API
 
 Version 2.2.0
@@ -263,16 +331,16 @@ Version 2.0.0
 This release has the following **API breaks**:
 
 * eClock API, which was deprecated on v1.9.1, has been removed
-* `eprosima::fastrtps::rtps::RTPSDomain::createParticipant` methods now have an additional first argument `domain_id`
-* Data member `domainId` has been removed from `eprosima::fastrtps::rtps::RTPSParticipantAttributes` and added to
-  `eprosima::fastrtps::ParticipantAttributes`
+* `eprosima::fastdds::rtps::RTPSDomain::createParticipant` methods now have an additional first argument `domain_id`
+* Data member `domainId` has been removed from `eprosima::fastdds::rtps::RTPSParticipantAttributes` and added to
+  `eprosima::fastdds::ParticipantAttributes`
 
 Users should also be aware of the following **deprecation announcement**:
 
-* All classes inside the namespace `eprosima::fastrtps` should be considered deprecated.
+* All classes inside the namespace `eprosima::fastdds` should be considered deprecated.
   Equivalent functionality is offered through namespace `eprosima::fastdds`.
-* Namespaces beneath `eprosima::fastrtps` are not included in this deprecation, i.e.
-  `eprosima::fastrtps::rtps` can still be used)
+* Namespaces beneath `eprosima::fastdds` are not included in this deprecation, i.e.
+  `eprosima::fastdds::rtps` can still be used)
 
 This release adds the following **features**:
 

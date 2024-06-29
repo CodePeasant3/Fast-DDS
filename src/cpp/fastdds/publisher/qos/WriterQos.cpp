@@ -20,14 +20,13 @@
 #include <fastdds/dds/publisher/qos/WriterQos.hpp>
 #include <fastdds/dds/log/Log.hpp>
 
-using namespace eprosima::fastrtps;
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds::rtps;
 
 namespace eprosima {
 namespace fastdds {
 namespace dds {
 
-//RTPS_DllAPI const WriterQos DATAWRITER_QOS_DEFAULT;
+//FASTDDS_EXPORTED_API const WriterQos DATAWRITER_QOS_DEFAULT;
 
 WriterQos::WriterQos()
 {

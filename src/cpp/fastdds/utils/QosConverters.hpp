@@ -21,21 +21,25 @@
 #ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
+#include <fastdds/dds/domain/qos/DomainParticipantExtendedQos.hpp>
+#include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
+#include <fastdds/dds/domain/qos/ReplierQos.hpp>
+#include <fastdds/dds/domain/qos/RequesterQos.hpp>
 #include <fastdds/dds/publisher/qos/DataWriterQos.hpp>
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
-#include <fastdds/rtps/attributes/RTPSParticipantAttributes.h>
-#include <fastrtps/attributes/PublisherAttributes.h>
-#include <fastrtps/attributes/SubscriberAttributes.h>
-#include <fastrtps/attributes/TopicAttributes.h>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
+#include <fastdds/rtps/attributes/TopicAttributes.hpp>
+
+#include <xmlparser/attributes/ParticipantAttributes.hpp>
+#include <xmlparser/attributes/PublisherAttributes.hpp>
+#include <xmlparser/attributes/ReplierAttributes.hpp>
+#include <xmlparser/attributes/RequesterAttributes.hpp>
+#include <xmlparser/attributes/SubscriberAttributes.hpp>
 
 namespace eprosima {
 namespace fastdds {
 namespace dds {
 namespace utils {
-
-using fastrtps::PublisherAttributes;
-using fastrtps::SubscriberAttributes;
-using fastrtps::TopicAttributes;
 
 /**
  * Obtains the DataWriterQos from the PublisherAttributes provided.
@@ -73,7 +77,25 @@ void set_qos_from_attributes(
  */
 void set_qos_from_attributes(
         DomainParticipantQos& qos,
-        const eprosima::fastrtps::rtps::RTPSParticipantAttributes& attr);
+        const eprosima::fastdds::rtps::RTPSParticipantAttributes& attr);
+
+/**
+ * @brief Fill DomainParticipantExtendedQos from a given attributes ParticipantAttributes object
+ *
+ * For the case of the non-binary properties, instead of the ParticipantAttributes overriding the
+ * property list in the DomainParticipantExtendedQos, a merge is performed in the following manner:
+ *
+ * - If any property from the ParticipantAttributes is not in the DomainParticipantExtendedQos, then it is appended
+ *   to the DomainParticipantExtendedQos.
+ * - If any property from the ParticipantAttributes property is also in the DomainParticipantExtendedQos, then the
+ *   value in the DomainParticipantExtendedQos is overridden with that of the ParticipantAttributes.
+ *
+ * @param[in, out] extended_qos The DomainParticipantExtendedQos to set
+ * @param[in] attr The ParticipantAttributes from which the @c extended_qos is set.
+ */
+void set_extended_qos_from_attributes(
+        DomainParticipantExtendedQos& extended_qos,
+        const eprosima::fastdds::ParticipantAttributes& attr);
 
 /**
  * Obtains the RTPSParticipantAttributes from the DomainParticipantQos provided.
@@ -82,8 +104,18 @@ void set_qos_from_attributes(
  * @param[in] qos Pointer to the QoS to write on
  */
 void set_attributes_from_qos(
-        fastrtps::rtps::RTPSParticipantAttributes& attr,
+        fastdds::rtps::RTPSParticipantAttributes& attr,
         const DomainParticipantQos& qos);
+
+/**
+ * Obtains the ParticipantAttributes from the DomainParticipantExtendedQos provided.
+ *
+ * @param[out] attr Pointer to the attributes from which to obtain data
+ * @param[in] extended_qos Pointer to the QoS to write on
+ */
+void set_attributes_from_extended_qos(
+        eprosima::fastdds::ParticipantAttributes& attr,
+        const DomainParticipantExtendedQos& extended_qos);
 
 /**
  * Obtains the TopicQos from the TopicAttributes provided.
@@ -115,9 +147,30 @@ void set_qos_from_attributes(
         PublisherQos& qos,
         const PublisherAttributes& attr);
 
+/**
+ * Obtains the ReplierQos from the ReplierAttributes provided.
+ *
+ * @param[out] qos Pointer to the QoS to write on
+ * @param[in] attr Pointer to the attributes from which to obtain data
+ */
+void set_qos_from_attributes(
+        ReplierQos& qos,
+        const ReplierAttributes& attr);
+
+/**
+ * Obtains the RequesterQos from the RequesterAttributes provided.
+ *
+ * @param[out] qos Pointer to the QoS to write on
+ * @param[in] attr Pointer to the attributes from which to obtain data
+ */
+void set_qos_from_attributes(
+        RequesterQos& qos,
+        const RequesterAttributes& attr);
+
 } /* namespace utils */
 } /* namespace dds */
 } /* namespace fastdds */
 } /* namespace eprosima */
+
 #endif // ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
 #endif /* _FASTDDS_UTILS_QOS_CONVERTERS_HPP_ */

@@ -17,9 +17,9 @@
 #include <thread>
 
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/resources/ResourceEvent.h>
-#include <fastdds/statistics/rtps/monitor_service/Interfaces.hpp>
+#include <rtps/resources/ResourceEvent.h>
 
+#include <statistics/rtps/monitor-service/Interfaces.hpp>
 #include <statistics/rtps/monitor-service/MonitorService.hpp>
 #include <statistics/rtps/monitor-service/MonitorServiceListener.hpp>
 
@@ -30,16 +30,15 @@ namespace rtps {
 
 struct MockStatusQueryable : public IStatusQueryable
 {
-    MOCK_METHOD3(get_monitoring_status, bool (
-                const fastrtps::rtps::GUID_t& guid,
-                const uint32_t& id,
-                DDSEntityStatus * &status));
+    MOCK_METHOD2(get_monitoring_status, bool (
+                const fastdds::rtps::GUID_t& guid,
+                MonitorServiceData & status));
 };
 
 struct MockConnectionsQueryable : public IConnectionsQueryable
 {
     MOCK_METHOD2(get_entity_connections, bool(
-                const fastrtps::rtps::GUID_t& guid,
+                const fastdds::rtps::GUID_t& guid,
                 ConnectionList & conns_list));
 };
 
@@ -47,11 +46,11 @@ struct MockProxyQueryable : public IProxyQueryable
 {
 
     MOCK_METHOD1(get_all_local_proxies, bool(
-                std::vector<fastrtps::rtps::GUID_t>& guids));
+                std::vector<fastdds::rtps::GUID_t>& guids));
 
     MOCK_METHOD2(get_serialized_proxy, bool(
-                const fastrtps::rtps::GUID_t& guid,
-                fastrtps::rtps::CDRMessage_t* msg));
+                const fastdds::rtps::GUID_t& guid,
+                fastdds::rtps::CDRMessage_t* msg));
 };
 
 
@@ -64,24 +63,23 @@ public:
         : listener_(&monitor_srv_)
         , n_local_entities(5)
         , monitor_srv_(
-            fastrtps::rtps::GUID_t(),
+            fastdds::rtps::GUID_t(),
             &mock_proxy_q_,
             &mock_conns_q_,
             mock_status_q_,
-            [&](fastrtps::rtps::RTPSWriter**,
-            fastrtps::rtps::WriterAttributes&,
-            const std::shared_ptr<fastrtps::rtps::IPayloadPool>&,
-            fastrtps::rtps::WriterHistory*,
-            fastrtps::rtps::WriterListener*,
-            const fastrtps::rtps::EntityId_t&,
+            [&](fastdds::rtps::RTPSWriter**,
+            fastdds::rtps::WriterAttributes&,
+            fastdds::rtps::WriterHistory*,
+            fastdds::rtps::WriterListener*,
+            const fastdds::rtps::EntityId_t&,
             bool)->bool
             {
                 return true;
             },
             [&](
-                fastrtps::rtps::RTPSWriter*,
-                const fastrtps::TopicAttributes&,
-                const fastrtps::WriterQos&)->bool
+                fastdds::rtps::RTPSWriter*,
+                const fastdds::TopicAttributes&,
+                const fastdds::dds::WriterQos&)->bool
             {
                 return true;
             },
@@ -96,15 +94,15 @@ public:
         mock_guids.reserve(n_local_entities);
 
         ON_CALL(mock_proxy_q_, get_all_local_proxies(::testing::_)).WillByDefault(testing::Invoke(
-                    [this](std::vector<fastrtps::rtps::GUID_t>& guids)
+                    [this](std::vector<fastdds::rtps::GUID_t>& guids)
                     {
                         guids.reserve(n_local_entities);
                         mock_guids.reserve(n_local_entities);
 
                         for (size_t i = 1; i <= static_cast<size_t>(n_local_entities); i++)
                         {
-                            fastrtps::rtps::GUID_t guid;
-                            guid.entityId.value[3] = (fastrtps::rtps::octet)i;
+                            fastdds::rtps::GUID_t guid;
+                            guid.entityId.value[3] = (fastdds::rtps::octet)i;
                             guids.push_back(guid);
                             mock_guids.push_back(guid);
                         }
@@ -112,14 +110,14 @@ public:
                     }));
 
         ON_CALL(mock_proxy_q_, get_serialized_proxy(::testing::_, ::testing::_)).WillByDefault(testing::Invoke(
-                    [](const fastrtps::rtps::GUID_t&,
-                    fastrtps::rtps::CDRMessage_t*)
+                    [](const fastdds::rtps::GUID_t&,
+                    fastdds::rtps::CDRMessage_t*)
                     {
                         return true;
                     }));
 
         ON_CALL(mock_conns_q_, get_entity_connections(::testing::_, ::testing::_)).WillByDefault(testing::Invoke(
-                    [](const fastrtps::rtps::GUID_t&,
+                    [](const fastdds::rtps::GUID_t&,
                     ConnectionList&)
                     {
                         return true;
@@ -146,9 +144,9 @@ protected:
     testing::NiceMock<MockProxyQueryable> mock_proxy_q_;
     MonitorServiceListener listener_;
     int n_local_entities;
-    std::vector<fastrtps::rtps::GUID_t> mock_guids;
-    fastrtps::rtps::ResourceEvent mock_event_resource_;
-    testing::NiceMock<fastrtps::rtps::RTPSWriter> writer;
+    std::vector<fastdds::rtps::GUID_t> mock_guids;
+    fastdds::rtps::ResourceEvent mock_event_resource_;
+    testing::NiceMock<fastdds::rtps::RTPSWriter> writer;
     MonitorService monitor_srv_;
 };
 
@@ -208,21 +206,21 @@ TEST_F(MonitorServiceTests, multiple_dds_status_updates)
     ASSERT_TRUE(monitor_srv_.enable_monitor_service());
     ASSERT_TRUE(monitor_srv_.is_enabled());
 
-    ON_CALL(mock_status_q_, get_monitoring_status(::testing::_, ::testing::_, ::testing::_)).
+    ON_CALL(mock_status_q_, get_monitoring_status(::testing::_, ::testing::_)).
             WillByDefault(testing::Return(true));
 
     //! Expect the getters for each status that is going to be updated
-    EXPECT_CALL(mock_status_q_, get_monitoring_status(::testing::_, ::testing::_, ::testing::_)).
+    EXPECT_CALL(mock_status_q_, get_monitoring_status(::testing::_, ::testing::_)).
             Times(n_local_entities * 5);//statuses * n_local_entities
 
     //! Trigger statuses updates for each entity
     for (auto& entity : mock_guids)
     {
-        listener_.on_local_entity_status_change(entity, statistics::INCOMPATIBLE_QOS);
-        listener_.on_local_entity_status_change(entity, statistics::LIVELINESS_CHANGED);
-        listener_.on_local_entity_status_change(entity, statistics::LIVELINESS_LOST);
-        listener_.on_local_entity_status_change(entity, statistics::DEADLINE_MISSED);
-        listener_.on_local_entity_status_change(entity, statistics::SAMPLE_LOST);
+        listener_.on_local_entity_status_change(entity, statistics::StatusKind::INCOMPATIBLE_QOS);
+        listener_.on_local_entity_status_change(entity, statistics::StatusKind::LIVELINESS_CHANGED);
+        listener_.on_local_entity_status_change(entity, statistics::StatusKind::LIVELINESS_LOST);
+        listener_.on_local_entity_status_change(entity, statistics::StatusKind::DEADLINE_MISSED);
+        listener_.on_local_entity_status_change(entity, statistics::StatusKind::SAMPLE_LOST);
     }
 
     //! Verify expectations
@@ -247,7 +245,7 @@ TEST_F(MonitorServiceTests, entity_removal_correctly_performs)
             WillByDefault(testing::Return(true));
     ON_CALL(mock_conns_q_, get_entity_connections(::testing::_, ::testing::_)).
             WillByDefault(testing::Return(true));
-    ON_CALL(mock_status_q_, get_monitoring_status(::testing::_, ::testing::_, ::testing::_)).
+    ON_CALL(mock_status_q_, get_monitoring_status(::testing::_, ::testing::_)).
             WillByDefault(testing::Return(true));
 
     //! Expect the creation 5 ones
@@ -257,18 +255,18 @@ TEST_F(MonitorServiceTests, entity_removal_correctly_performs)
             Times(5);
 
     //! Expect the getters for each status that is going to be updated
-    EXPECT_CALL(mock_status_q_, get_monitoring_status(::testing::_, ::testing::_, ::testing::_)).
+    EXPECT_CALL(mock_status_q_, get_monitoring_status(::testing::_, ::testing::_)).
             Times(5 * 5);
 
     //! Trigger statuses updates for each of the non-existent entity
     for (auto& entity : mock_guids)
     {
         listener_.on_local_entity_connections_change(entity);
-        listener_.on_local_entity_status_change(entity, statistics::INCOMPATIBLE_QOS);
-        listener_.on_local_entity_status_change(entity, statistics::LIVELINESS_CHANGED);
-        listener_.on_local_entity_status_change(entity, statistics::LIVELINESS_LOST);
-        listener_.on_local_entity_status_change(entity, statistics::DEADLINE_MISSED);
-        listener_.on_local_entity_status_change(entity, statistics::SAMPLE_LOST);
+        listener_.on_local_entity_status_change(entity, statistics::StatusKind::INCOMPATIBLE_QOS);
+        listener_.on_local_entity_status_change(entity, statistics::StatusKind::LIVELINESS_CHANGED);
+        listener_.on_local_entity_status_change(entity, statistics::StatusKind::LIVELINESS_LOST);
+        listener_.on_local_entity_status_change(entity, statistics::StatusKind::DEADLINE_MISSED);
+        listener_.on_local_entity_status_change(entity, statistics::StatusKind::SAMPLE_LOST);
     }
 
     //! Verify expectations

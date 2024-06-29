@@ -1,13 +1,29 @@
-#ifndef _FASTDDS_RTPS_WRITER_LOCATORSELECTORSENDER_HPP_
-#define _FASTDDS_RTPS_WRITER_LOCATORSELECTORSENDER_HPP_
+// Copyright 2021 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef FASTDDS_RTPS_WRITER_LOCATORSELECTORSENDER_HPP
+#define FASTDDS_RTPS_WRITER_LOCATORSELECTORSENDER_HPP
+
+#include <vector>
 
 #include <fastdds/rtps/common/LocatorSelector.hpp>
 #include <fastdds/rtps/messages/RTPSMessageSenderInterface.hpp>
-#include <fastrtps/utils/collections/ResourceLimitedVector.hpp>
-#include <fastrtps/utils/TimedMutex.hpp>
+#include <fastdds/utils/collections/ResourceLimitedVector.hpp>
+#include <fastdds/utils/TimedMutex.hpp>
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 class RTPSWriter;
@@ -69,11 +85,13 @@ public:
     /*!
      * Send a message through this interface.
      *
-     * @param message Pointer to the buffer with the message already serialized.
+     * @param buffers Vector of NetworkBuffers to send with data already serialized.
+     * @param total_bytes Total number of bytes to send. Should be equal to the sum of the @c size field of all buffers.
      * @param max_blocking_time_point Future timepoint where blocking send should end.
      */
     bool send(
-            CDRMessage_t* message,
+            const std::vector<fastdds::rtps::NetworkBuffer>& buffers,
+            const uint32_t& total_bytes,
             std::chrono::steady_clock::time_point max_blocking_time_point) const override;
 
     /*!
@@ -106,7 +124,7 @@ public:
         return mutex_.try_lock_until(abs_time);
     }
 
-    fastrtps::rtps::LocatorSelector locator_selector;
+    fastdds::rtps::LocatorSelector locator_selector;
 
     ResourceLimitedVector<GUID_t> all_remote_readers;
 
@@ -120,6 +138,6 @@ private:
 };
 
 } // namespace rtps
-} // namespace fastrtps
+} // namespace fastdds
 } // namespace eprosima
-#endif // _FASTDDS_RTPS_WRITER_LOCATORSELECTORSENDER_HPP_
+#endif // FASTDDS_RTPS_WRITER_LOCATORSELECTORSENDER_HPP

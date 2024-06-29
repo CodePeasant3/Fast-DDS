@@ -19,21 +19,18 @@
 
 #include "TestReaderPersistent.h"
 
-#include <fastrtps/rtps/reader/RTPSReader.h>
-#include <fastrtps/rtps/participant/RTPSParticipant.h>
-#include <fastrtps/rtps/RTPSDomain.h>
+#include <fastdds/dds/subscriber/qos/ReaderQos.hpp>
+#include <fastdds/rtps/attributes/HistoryAttributes.hpp>
+#include <fastdds/rtps/attributes/ReaderAttributes.hpp>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
+#include <fastdds/rtps/attributes/TopicAttributes.hpp>
+#include <fastdds/rtps/history/ReaderHistory.hpp>
+#include <fastdds/rtps/participant/RTPSParticipant.hpp>
+#include <fastdds/rtps/reader/RTPSReader.hpp>
+#include <fastdds/rtps/RTPSDomain.hpp>
 
-#include <fastrtps/rtps/attributes/RTPSParticipantAttributes.h>
-#include <fastrtps/rtps/attributes/ReaderAttributes.h>
-#include <fastrtps/rtps/attributes/HistoryAttributes.h>
-
-#include <fastrtps/rtps/history/ReaderHistory.h>
-
-#include <fastrtps/attributes/TopicAttributes.h>
-#include <fastrtps/qos/ReaderQos.h>
-
-using namespace eprosima::fastrtps;
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds;
+using namespace eprosima::fastdds::rtps;
 
 TestReaderPersistent::TestReaderPersistent()
     : mp_participant(nullptr)
@@ -54,7 +51,7 @@ bool TestReaderPersistent::init()
 {
     //CREATE PARTICIPANT
     RTPSParticipantAttributes PParam;
-    PParam.builtin.discovery_config.discoveryProtocol = eprosima::fastrtps::rtps::DiscoveryProtocol::SIMPLE;
+    PParam.builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::SIMPLE;
     PParam.builtin.use_WriterLivelinessProtocol = true;
     mp_participant = RTPSDomain::createParticipant(0, PParam);
     if (mp_participant == nullptr)
@@ -94,7 +91,7 @@ bool TestReaderPersistent::reg()
     Tatt.topicKind = NO_KEY;
     Tatt.topicDataType = "string";
     Tatt.topicName = "exampleTopic";
-    ReaderQos Rqos;
+    eprosima::fastdds::dds::ReaderQos Rqos;
     return mp_participant->registerReader(mp_reader, Tatt, Rqos);
 }
 
@@ -104,11 +101,11 @@ void TestReaderPersistent::run()
     std::cin.ignore();
 }
 
-void TestReaderPersistent::MyListener::onNewCacheChangeAdded(
+void TestReaderPersistent::MyListener::on_new_cache_change_added(
         RTPSReader* reader,
         const CacheChange_t* const change)
 {
     printf("Received: %s\n", change->serializedPayload.data);
-    reader->getHistory()->remove_change((CacheChange_t*)change);
+    reader->get_history()->remove_change((CacheChange_t*)change);
     n_received++;
 }

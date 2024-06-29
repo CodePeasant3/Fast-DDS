@@ -20,12 +20,12 @@
 #include <memory>
 #include <string>
 
-#include <fastdds/rtps/common/CdrSerialization.hpp>
-#include <fastdds/rtps/common/SerializedPayload.h>
 #include <fastdds/dds/topic/TopicDataType.hpp>
 
-#include <fastrtps/fastrtps_dll.h>
-#include <fastrtps/utils/md5.h>
+#include <fastdds/fastdds_dll.hpp>
+#include <fastdds/rtps/common/CdrSerialization.hpp>
+#include <fastdds/rtps/common/SerializedPayload.hpp>
+#include <fastdds/utils/md5.hpp>
 
 namespace eprosima {
 namespace fastdds {
@@ -34,7 +34,6 @@ namespace dds {
 TopicDataType::TopicDataType()
     : m_typeSize(0)
     , m_isGetKeyDefined(false)
-    , auto_fill_type_object_(true)
     , auto_fill_type_information_(true)
 {
 }
@@ -44,8 +43,8 @@ TopicDataType::~TopicDataType()
 }
 
 bool TopicDataType::serialize(
-        void* data,
-        fastrtps::rtps::SerializedPayload_t* payload,
+        const void* const data,
+        fastdds::rtps::SerializedPayload_t* payload,
         DataRepresentationId_t data_representation)
 {
 
@@ -54,7 +53,7 @@ bool TopicDataType::serialize(
 }
 
 std::function<uint32_t()> TopicDataType::getSerializedSizeProvider(
-        void* data,
+        const void* const data,
         DataRepresentationId_t data_representation)
 {
     static_cast<void>(data);

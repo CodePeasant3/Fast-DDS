@@ -24,13 +24,13 @@
 
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
-#include <fastdds/rtps/transport/TCPv4TransportDescriptor.h>
-#include <fastrtps/utils/IPLocator.h>
+#include <fastdds/rtps/transport/TCPv4TransportDescriptor.hpp>
+#include <fastdds/utils/IPLocator.hpp>
 
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::fastdds::rtps;
 
-using IPLocator = eprosima::fastrtps::rtps::IPLocator;
+using IPLocator = eprosima::fastdds::rtps::IPLocator;
 
 HelloWorldSubscriber::HelloWorldSubscriber()
     : participant_(nullptr)
@@ -75,7 +75,7 @@ bool HelloWorldSubscriber::init(
     initial_peer_locator.port = port;
     pqos.wire_protocol().builtin.initialPeersList.push_back(initial_peer_locator); // Publisher's meta channel
 
-    pqos.wire_protocol().builtin.discovery_config.leaseDuration = eprosima::fastrtps::c_TimeInfinite;
+    pqos.wire_protocol().builtin.discovery_config.leaseDuration = eprosima::fastdds::c_TimeInfinite;
     pqos.wire_protocol().builtin.discovery_config.leaseDuration_announcementperiod = Duration_t(5, 0);
     pqos.name("Participant_sub");
 
@@ -179,7 +179,7 @@ void HelloWorldSubscriber::SubListener::on_data_available(
         DataReader* reader)
 {
     SampleInfo info;
-    if (reader->take_next_sample(&hello_, &info) == ReturnCode_t::RETCODE_OK)
+    if (reader->take_next_sample(&hello_, &info) == RETCODE_OK)
     {
         if (info.valid_data)
         {

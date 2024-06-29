@@ -15,8 +15,8 @@
 /*!
  * @file SecurityManager.h
  */
-#ifndef _RTPS_SECURITY_SECURITYMANAGER_H_
-#define _RTPS_SECURITY_SECURITYMANAGER_H_
+#ifndef FASTDDS_RTPS_SECURITY__SECURITYMANAGER_H
+#define FASTDDS_RTPS_SECURITY__SECURITYMANAGER_H
 
 #include <atomic>
 #include <list>
@@ -25,26 +25,28 @@
 #include <mutex>
 #include <thread>
 
-#include <rtps/security/ISecurityPluginFactory.h>
+#include <fastdds/rtps/attributes/HistoryAttributes.hpp>
+#include <fastdds/rtps/builtin/data/ParticipantProxyData.hpp>
+#include <fastdds/rtps/builtin/data/ReaderProxyData.hpp>
+#include <fastdds/rtps/builtin/data/WriterProxyData.hpp>
+#include <fastdds/rtps/common/SequenceNumber.hpp>
+#include <fastdds/rtps/common/SerializedPayload.hpp>
+#include <fastdds/rtps/reader/ReaderListener.hpp>
+#include <fastdds/rtps/writer/WriterListener.hpp>
 
-#include <fastdds/rtps/attributes/HistoryAttributes.h>
-#include <fastdds/rtps/builtin/data/ParticipantProxyData.h>
-#include <fastdds/rtps/builtin/data/ReaderProxyData.h>
-#include <fastdds/rtps/builtin/data/WriterProxyData.h>
-#include <fastdds/rtps/common/SequenceNumber.h>
-#include <fastdds/rtps/common/SerializedPayload.h>
-#include <fastdds/rtps/reader/ReaderListener.h>
-#include <fastdds/rtps/resources/TimedEvent.h>
-#include <fastdds/rtps/security/authentication/Handshake.h>
-#include <fastdds/rtps/security/common/ParticipantGenericMessage.h>
-#include <fastrtps/utils/ProxyPool.hpp>
-#include <fastrtps/utils/shared_mutex.hpp>
+#include <rtps/resources/TimedEvent.h>
+#include <rtps/security/authentication/Handshake.h>
+#include <rtps/security/common/ParticipantGenericMessage.h>
+#include <rtps/security/ISecurityPluginFactory.h>
+#include <utils/ProxyPool.hpp>
+#include <utils/shared_mutex.hpp>
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 class RTPSParticipantImpl;
+class RTPSWriter;
 class StatelessWriter;
 class StatelessReader;
 class StatefulWriter;
@@ -66,7 +68,7 @@ struct EndpointSecurityAttributes;
  *
  * @ingroup SECURITY_MODULE
  */
-class SecurityManager
+class SecurityManager : private WriterListener
 {
 public:
 
@@ -557,7 +559,7 @@ private:
 
     };
 
-    class ParticipantStatelessMessageListener : public eprosima::fastrtps::rtps::ReaderListener
+    class ParticipantStatelessMessageListener : public eprosima::fastdds::rtps::ReaderListener
     {
     public:
 
@@ -571,7 +573,7 @@ private:
         {
         }
 
-        void onNewCacheChangeAdded(
+        void on_new_cache_change_added(
                 RTPSReader* reader,
                 const CacheChange_t* const change) override;
 
@@ -584,7 +586,7 @@ private:
     }
     participant_stateless_message_listener_;
 
-    class ParticipantVolatileMessageListener : public eprosima::fastrtps::rtps::ReaderListener
+    class ParticipantVolatileMessageListener : public eprosima::fastdds::rtps::ReaderListener
     {
     public:
 
@@ -598,7 +600,7 @@ private:
         {
         }
 
-        void onNewCacheChangeAdded(
+        void on_new_cache_change_added(
                 RTPSReader* reader,
                 const CacheChange_t* const change) override;
 
@@ -874,6 +876,10 @@ private:
         }
     }
 
+    void onWriterChangeReceivedByAll(
+            RTPSWriter* writer,
+            CacheChange_t* change) override;
+
     /**
      * Syncronization object for plugin initialization, <tt>mutex_</tt> protection is not necessary to guarantee plugin
      * availability.
@@ -914,7 +920,7 @@ private:
         std::map<GUID_t, std::tuple<WriterProxyData, DatawriterCryptoHandle*>> associated_writers;
     };
 
-    // TODO(Ricardo) Temporal. Store individual in FastRTPS code.
+    // TODO(Ricardo) Temporal. Store individual in Fast DDS code.
     std::map<GUID_t, DatawriterAssociations> writer_handles_;
     std::map<GUID_t, DatareaderAssociations> reader_handles_;
 
@@ -940,7 +946,7 @@ private:
 
 } //namespace security
 } //namespace rtps
-} //namespace fastrtps
+} //namespace fastdds
 } //namespace eprosima
 
-#endif // _RTPS_SECURITY_SECURITYMANAGER_H_
+#endif // FASTDDS_RTPS_SECURITY__SECURITYMANAGER_H

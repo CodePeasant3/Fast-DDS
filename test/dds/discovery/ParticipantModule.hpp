@@ -23,15 +23,15 @@
 
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
-#include <fastdds/rtps/attributes/RTPSParticipantAttributes.h>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
 #include <fastdds/rtps/common/GuidPrefix_t.hpp>
-#include <fastdds/rtps/participant/ParticipantDiscoveryInfo.h>
+#include <fastdds/rtps/participant/ParticipantDiscoveryInfo.hpp>
 
 namespace eprosima {
 namespace fastdds {
 namespace dds {
 
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds::rtps;
 
 class ParticipantModule : public DomainParticipantListener
 {
@@ -46,7 +46,8 @@ public:
 
     void on_participant_discovery(
             DomainParticipant* participant,
-            ParticipantDiscoveryInfo&& info) override;
+            ParticipantDiscoveryInfo&& info,
+            bool& should_be_ignored) override;
 
     bool init();
 
@@ -56,7 +57,7 @@ private:
 
     unsigned int matched_ = 0;
     DomainParticipant* participant_ = nullptr;
-    DiscoveryProtocol_t discovery_protocol_;
+    DiscoveryProtocol discovery_protocol_;
     GuidPrefix_t server_guid_prefix_;
     uint32_t unicast_metatraffic_port_;
 };

@@ -16,7 +16,7 @@
  * @file RTPSDomain.cpp
  */
 
-#include <fastdds/rtps/RTPSDomain.h>
+#include <fastdds/rtps/RTPSDomain.hpp>
 
 #include <chrono>
 #include <cstdlib>
@@ -27,33 +27,33 @@
 #include <thread>
 
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/history/WriterHistory.h>
-#include <fastdds/rtps/participant/RTPSParticipant.h>
-#include <fastdds/rtps/reader/RTPSReader.h>
-#include <fastdds/rtps/writer/RTPSWriter.h>
-
-#include <rtps/transport/UDPv4Transport.h>
-#include <rtps/transport/UDPv6Transport.h>
-#include <rtps/transport/test_UDPv4Transport.h>
-#include <rtps/transport/TCPv4Transport.h>
-#include <rtps/transport/TCPv6Transport.h>
-
-#include <fastrtps/utils/IPFinder.h>
-#include <fastrtps/utils/IPLocator.h>
-#include <fastrtps/utils/System.h>
-#include <fastrtps/utils/md5.h>
-#include <fastrtps/xmlparser/XMLProfileManager.h>
-#include <rtps/RTPSDomainImpl.hpp>
-#include <rtps/participant/RTPSParticipantImpl.h>
+#include <fastdds/LibrarySettings.hpp>
+#include <fastdds/rtps/history/WriterHistory.hpp>
+#include <fastdds/rtps/participant/RTPSParticipant.hpp>
+#include <fastdds/rtps/reader/RTPSReader.hpp>
+#include <fastdds/rtps/writer/RTPSWriter.hpp>
+#include <fastdds/utils/IPFinder.hpp>
+#include <fastdds/utils/IPLocator.hpp>
+#include <fastdds/utils/md5.hpp>
 
 #include <rtps/common/GuidUtils.hpp>
 #include <rtps/network/utils/external_locators.hpp>
+#include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/RTPSDomainImpl.hpp>
+#include <rtps/transport/TCPv4Transport.h>
+#include <rtps/transport/TCPv6Transport.h>
+#include <rtps/transport/test_UDPv4Transport.h>
+#include <rtps/transport/UDPv4Transport.h>
+#include <rtps/transport/UDPv6Transport.h>
 #include <utils/Host.hpp>
 #include <utils/SystemInfo.hpp>
+#include <xmlparser/XMLProfileManager.h>
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
+
+using BaseReader = fastdds::rtps::BaseReader;
 
 static void guid_prefix_create(
         uint32_t ID,
@@ -122,6 +122,9 @@ void RTPSDomainImpl::stopAll()
         instance->removeRTPSParticipant_nts(participant);
         lock.lock();
     }
+
+    xmlparser::XMLProfileManager::DeleteInstance();
+
     EPROSIMA_LOG_INFO(RTPS_PARTICIPANT, "RTPSParticipants deleted correctly ");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
@@ -188,7 +191,7 @@ RTPSParticipant* RTPSDomainImpl::createParticipant(
     if (!PParam.builtin.metatraffic_external_unicast_locators.empty())
     {
         fastdds::rtps::LocatorList locators;
-        fastrtps::rtps::IPFinder::getIP4Address(&locators);
+        fastdds::rtps::IPFinder::getIP4Address(&locators);
         fastdds::rtps::network::external_locators::add_external_locators(locators,
                 PParam.builtin.metatraffic_external_unicast_locators);
         uint16_t host_id = Host::compute_id(locators);
@@ -221,8 +224,8 @@ RTPSParticipant* RTPSDomainImpl::createParticipant(
     // Above constructors create the sender resources. If a given listening port cannot be allocated an iterative
     // mechanism will allocate another by default. Change the default listening port is unacceptable for
     // discovery server Participant.
-    if ((PParam.builtin.discovery_config.discoveryProtocol == DiscoveryProtocol_t::SERVER
-            || PParam.builtin.discovery_config.discoveryProtocol == DiscoveryProtocol_t::BACKUP)
+    if ((PParam.builtin.discovery_config.discoveryProtocol == DiscoveryProtocol::SERVER
+            || PParam.builtin.discovery_config.discoveryProtocol == DiscoveryProtocol::BACKUP)
             && pimpl->did_mutation_took_place_on_meta(
                 PParam.builtin.metatrafficMulticastLocatorList,
                 PParam.builtin.metatrafficUnicastLocatorList))
@@ -258,7 +261,7 @@ RTPSParticipant* RTPSDomainImpl::createParticipant(
     }
 
     // Check the environment file in case it was modified during participant creation leading to a missed callback.
-    if ((PParam.builtin.discovery_config.discoveryProtocol != DiscoveryProtocol_t::CLIENT) &&
+    if ((PParam.builtin.discovery_config.discoveryProtocol != DiscoveryProtocol::CLIENT) &&
             instance->file_watch_handle_)
     {
         pimpl->environment_file_has_changed();
@@ -330,62 +333,8 @@ RTPSWriter* RTPSDomain::createRTPSWriter(
 
 RTPSWriter* RTPSDomain::createRTPSWriter(
         RTPSParticipant* p,
-        WriterAttributes& watt,
-        const std::shared_ptr<IPayloadPool>& payload_pool,
-        WriterHistory* hist,
-        WriterListener* listen)
-{
-    RTPSParticipantImpl* impl = RTPSDomainImpl::find_local_participant(p->getGuid());
-    if (impl)
-    {
-        RTPSWriter* ret_val = nullptr;
-        if (impl->createWriter(&ret_val, watt, payload_pool, hist, listen))
-        {
-            return ret_val;
-        }
-    }
-
-    return nullptr;
-}
-
-RTPSWriter* RTPSDomain::createRTPSWriter(
-        RTPSParticipant* p,
-        WriterAttributes& watt,
-        const std::shared_ptr<IPayloadPool>& payload_pool,
-        const std::shared_ptr<IChangePool>& change_pool,
-        WriterHistory* hist,
-        WriterListener* listen)
-{
-    RTPSParticipantImpl* impl = RTPSDomainImpl::find_local_participant(p->getGuid());
-    if (impl)
-    {
-        RTPSWriter* ret_val = nullptr;
-        if (impl->create_writer(&ret_val, watt, payload_pool, change_pool, hist, listen))
-        {
-            return ret_val;
-        }
-    }
-
-    return nullptr;
-}
-
-RTPSWriter* RTPSDomain::createRTPSWriter(
-        RTPSParticipant* p,
         const EntityId_t& entity_id,
         WriterAttributes& watt,
-        const std::shared_ptr<IPayloadPool>& payload_pool,
-        const std::shared_ptr<IChangePool>& change_pool,
-        WriterHistory* hist,
-        WriterListener* listen)
-{
-    return RTPSDomainImpl::create_rtps_writer(p, entity_id, watt, payload_pool, change_pool, hist, listen);
-}
-
-RTPSWriter* RTPSDomain::createRTPSWriter(
-        RTPSParticipant* p,
-        const EntityId_t& entity_id,
-        WriterAttributes& watt,
-        const std::shared_ptr<IPayloadPool>& payload_pool,
         WriterHistory* hist,
         WriterListener* listen)
 {
@@ -393,7 +342,7 @@ RTPSWriter* RTPSDomain::createRTPSWriter(
     if (impl)
     {
         RTPSWriter* ret_val = nullptr;
-        if (impl->createWriter(&ret_val, watt, payload_pool, hist, listen, entity_id))
+        if (impl->createWriter(&ret_val, watt, hist, listen, entity_id))
         {
             return ret_val;
         }
@@ -406,8 +355,6 @@ RTPSWriter* RTPSDomainImpl::create_rtps_writer(
         RTPSParticipant* p,
         const EntityId_t& entity_id,
         WriterAttributes& watt,
-        const std::shared_ptr<IPayloadPool>& payload_pool,
-        const std::shared_ptr<IChangePool>& change_pool,
         WriterHistory* hist,
         WriterListener* listen)
 {
@@ -415,7 +362,7 @@ RTPSWriter* RTPSDomainImpl::create_rtps_writer(
     if (impl)
     {
         RTPSWriter* ret_val = nullptr;
-        if (impl->create_writer(&ret_val, watt, payload_pool, change_pool, hist, listen, entity_id))
+        if (impl->create_writer(&ret_val, watt, hist, listen, entity_id, false))
         {
             return ret_val;
         }
@@ -540,7 +487,7 @@ RTPSParticipant* RTPSDomainImpl::clientServerEnvironmentCreationOverride(
         RTPSParticipantListener* listen)
 {
     // Check the specified discovery protocol: if other than simple it has priority over ros environment variable
-    if (att.builtin.discovery_config.discoveryProtocol != DiscoveryProtocol_t::SIMPLE)
+    if (att.builtin.discovery_config.discoveryProtocol != DiscoveryProtocol::SIMPLE)
     {
         EPROSIMA_LOG_INFO(DOMAIN, "Detected non simple discovery protocol attributes."
                 << " Ignoring auto default client-server setup.");
@@ -650,13 +597,13 @@ RTPSParticipant* RTPSDomainImpl::clientServerEnvironmentCreationOverride(
             << "Trying to create client with the default server setup: "
             << client_att.builtin.discovery_config.m_DiscoveryServers);
 
-    client_att.builtin.discovery_config.discoveryProtocol = DiscoveryProtocol_t::CLIENT;
+    client_att.builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::CLIENT;
     // RemoteServerAttributes already fill in above
 
     // Check if the client must become a super client
     if (ros_super_client_env())
     {
-        client_att.builtin.discovery_config.discoveryProtocol = DiscoveryProtocol_t::SUPER_CLIENT;
+        client_att.builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::SUPER_CLIENT;
     }
 
     RTPSParticipant* part = createParticipant(domain_id, enabled, client_att, listen);
@@ -777,7 +724,7 @@ RTPSParticipantImpl* RTPSDomainImpl::find_local_participant(
     return nullptr;
 }
 
-RTPSReader* RTPSDomainImpl::find_local_reader(
+BaseReader* RTPSDomainImpl::find_local_reader(
         const GUID_t& reader_guid)
 {
     auto instance = get_instance();
@@ -837,13 +784,13 @@ bool RTPSDomainImpl::should_intraprocess_between(
 
     switch (xmlparser::XMLProfileManager::library_settings().intraprocess_delivery)
     {
-        case IntraprocessDeliveryType::INTRAPROCESS_FULL:
+        case fastdds::IntraprocessDeliveryType::INTRAPROCESS_FULL:
             return true;
 
-        case IntraprocessDeliveryType::INTRAPROCESS_USER_DATA_ONLY:
+        case fastdds::IntraprocessDeliveryType::INTRAPROCESS_USER_DATA_ONLY:
             return !matched_guid.is_builtin();
 
-        case IntraprocessDeliveryType::INTRAPROCESS_OFF:
+        case fastdds::IntraprocessDeliveryType::INTRAPROCESS_OFF:
         default:
             break;
     }
@@ -877,6 +824,65 @@ void RTPSDomainImpl::set_filewatch_thread_config(
     instance->callback_thread_config_ = callback_thread;
 }
 
+bool RTPSDomain::get_library_settings(
+        fastdds::LibrarySettings& library_settings)
+{
+    return RTPSDomainImpl::get_library_settings(library_settings);
+}
+
+bool RTPSDomainImpl::get_library_settings(
+        fastdds::LibrarySettings& library_settings)
+{
+    library_settings = xmlparser::XMLProfileManager::library_settings();
+    return true;
+}
+
+bool RTPSDomain::set_library_settings(
+        const fastdds::LibrarySettings& library_settings)
+{
+    return RTPSDomainImpl::set_library_settings(library_settings);
+}
+
+bool RTPSDomainImpl::set_library_settings(
+        const fastdds::LibrarySettings& library_settings)
+{
+    if (!get_instance()->m_RTPSParticipants.empty())
+    {
+        return false;
+    }
+    xmlparser::XMLProfileManager::library_settings(library_settings);
+    return true;
+}
+
+bool RTPSDomain::get_topic_attributes_from_profile(
+        const std::string& profile_name,
+        TopicAttributes& topic_attributes)
+{
+    return RTPSDomainImpl::get_topic_attributes_from_profile(profile_name, topic_attributes);
+}
+
+bool RTPSDomainImpl::get_topic_attributes_from_profile(
+        const std::string& profile_name,
+        TopicAttributes& topic_attributes)
+{
+    if (xmlparser::XMLP_ret::XML_OK ==
+            xmlparser::XMLProfileManager::fillTopicAttributes(profile_name, topic_attributes))
+    {
+        return true;
+    }
+    return false;
+}
+
+fastdds::dds::xtypes::ITypeObjectRegistry& RTPSDomainImpl::type_object_registry()
+{
+    return get_instance()->type_object_registry_;
+}
+
+fastdds::dds::xtypes::TypeObjectRegistry& RTPSDomainImpl::type_object_registry_observer()
+{
+    return get_instance()->type_object_registry_;
+}
+
 } // namespace rtps
-} // namespace fastrtps
+} // namespace fastdds
 } // namespace eprosima

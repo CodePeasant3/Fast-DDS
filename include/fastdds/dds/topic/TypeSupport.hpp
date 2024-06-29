@@ -16,17 +16,18 @@
  * @file TypeSupport.hpp
  */
 
-#ifndef _FASTDDS_TYPE_SUPPORT_HPP_
-#define _FASTDDS_TYPE_SUPPORT_HPP_
-
-#include <fastdds/dds/topic/TopicDataType.hpp>
-#include <fastdds/dds/common/InstanceHandle.hpp>
-#include <fastrtps/types/DynamicPubSubType.h>
-#include <fastrtps/types/TypesBase.h>
+#ifndef FASTDDS_DDS_TOPIC__TYPESUPPORT_HPP
+#define FASTDDS_DDS_TOPIC__TYPESUPPORT_HPP
 
 #include <string>
 #include <functional>
 #include <memory>
+
+#include <fastdds/dds/common/InstanceHandle.hpp>
+#include <fastdds/dds/core/ReturnCode.hpp>
+#include <fastdds/dds/topic/TopicDataType.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicPubSubType.hpp>
+#include <fastdds/fastdds_dll.hpp>
 
 namespace eprosima {
 namespace fastdds {
@@ -42,25 +43,23 @@ class DomainParticipant;
  * where Serialize and deserialize methods MUST be implemented.
  * @ingroup FASTDDS_MODULE
  */
-class TypeSupport : public std::shared_ptr<fastdds::dds::TopicDataType>
+class TypeSupport : public std::shared_ptr<TopicDataType>
 {
 public:
 
-    using ReturnCode_t = eprosima::fastrtps::types::ReturnCode_t;
-
-    using Base = std::shared_ptr<fastdds::dds::TopicDataType>;
+    using Base = std::shared_ptr<TopicDataType>;
 
     /**
      * @brief Constructor
      */
-    RTPS_DllAPI TypeSupport() noexcept = default;
+    FASTDDS_EXPORTED_API TypeSupport() noexcept = default;
 
     /**
      * @brief Copy Constructor
      *
      * @param type Another instance of TypeSupport
      */
-    RTPS_DllAPI TypeSupport(
+    FASTDDS_EXPORTED_API TypeSupport(
             const TypeSupport& type) noexcept = default;
 
     /**
@@ -68,7 +67,7 @@ public:
      *
      * @param type Another instance of TypeSupport
      */
-    RTPS_DllAPI TypeSupport(
+    FASTDDS_EXPORTED_API TypeSupport(
             TypeSupport&& type) noexcept = default;
 
     /**
@@ -76,7 +75,7 @@ public:
      *
      * @param type Another instance of TypeSupport
      */
-    RTPS_DllAPI TypeSupport& operator = (
+    FASTDDS_EXPORTED_API TypeSupport& operator = (
             const TypeSupport& type) noexcept = default;
 
     /**
@@ -84,7 +83,7 @@ public:
      *
      * @param type Another instance of TypeSupport
      */
-    RTPS_DllAPI TypeSupport& operator = (
+    FASTDDS_EXPORTED_API TypeSupport& operator = (
             TypeSupport&& type) noexcept = default;
 
     /*!
@@ -94,22 +93,9 @@ public:
      *
      * @param ptr
      */
-    RTPS_DllAPI explicit TypeSupport(
-            fastdds::dds::TopicDataType* ptr)
-        : std::shared_ptr<fastdds::dds::TopicDataType>(ptr)
-    {
-    }
-
-    /*!
-     * @brief TypeSupport constructor that receives a DynamicPubSubType.
-     * It will copy the instance so the user will keep the ownership of his object.
-     *
-     * @param ptr
-     */
-    RTPS_DllAPI TypeSupport(
-            fastrtps::types::DynamicPubSubType ptr)
-        : std::shared_ptr<fastdds::dds::TopicDataType>(std::make_shared<fastrtps::types::DynamicPubSubType>(std::move(
-                    ptr)))
+    FASTDDS_EXPORTED_API explicit TypeSupport(
+            TopicDataType* ptr)
+        : std::shared_ptr<TopicDataType>(ptr)
     {
     }
 
@@ -120,7 +106,7 @@ public:
      * @return RETCODE_BAD_PARAMETER if the type name is empty, RETCODE_PRECONDITION_NOT_MET if there is another type with
      * the same name registered on the DomainParticipant and RETCODE_OK if it is registered correctly
      */
-    RTPS_DllAPI virtual ReturnCode_t register_type(
+    FASTDDS_EXPORTED_API virtual ReturnCode_t register_type(
             DomainParticipant* participant) const;
 
     /**
@@ -131,7 +117,7 @@ public:
      * @return RETCODE_BAD_PARAMETER if the type name is empty, RETCODE_PRECONDITION_NOT_MET if there is another type with
      * the same name registered on the DomainParticipant and RETCODE_OK if it is registered correctly
      */
-    RTPS_DllAPI virtual ReturnCode_t register_type(
+    FASTDDS_EXPORTED_API virtual ReturnCode_t register_type(
             DomainParticipant* participant,
             std::string type_name) const;
 
@@ -140,7 +126,7 @@ public:
      *
      * @return name of the data type
      */
-    RTPS_DllAPI virtual const std::string& get_type_name() const
+    FASTDDS_EXPORTED_API virtual const std::string& get_type_name() const
     {
         return get()->m_topicDataTypeName;
     }
@@ -153,9 +139,9 @@ public:
      * @return true if it is serialized correctly, false if not
      */
 
-    RTPS_DllAPI virtual bool serialize(
-            void* data,
-            fastrtps::rtps::SerializedPayload_t* payload)
+    FASTDDS_EXPORTED_API virtual bool serialize(
+            const void* const data,
+            fastdds::rtps::SerializedPayload_t* payload)
     {
         return serialize(data, payload, DEFAULT_DATA_REPRESENTATION);
     }
@@ -168,9 +154,9 @@ public:
      * @param[in] data_representation Representation that should be used to encode the data into the payload.
      * @return true if it is serialized correctly, false if not
      */
-    RTPS_DllAPI virtual bool serialize(
-            void* data,
-            fastrtps::rtps::SerializedPayload_t* payload,
+    FASTDDS_EXPORTED_API virtual bool serialize(
+            const void* const data,
+            fastdds::rtps::SerializedPayload_t* payload,
             DataRepresentationId_t data_representation);
 
     /**
@@ -180,8 +166,8 @@ public:
      * @param data Pointer to data
      * @return true if it is deserialized correctly, false if not
      */
-    RTPS_DllAPI virtual bool deserialize(
-            fastrtps::rtps::SerializedPayload_t* payload,
+    FASTDDS_EXPORTED_API virtual bool deserialize(
+            fastdds::rtps::SerializedPayload_t* payload,
             void* data);
 
     /*!
@@ -190,8 +176,8 @@ public:
      * @param[in] data Pointer to data.
      * @return Functor which calculates the serialized size of the data.
      */
-    RTPS_DllAPI virtual std::function<uint32_t()> get_serialized_size_provider(
-            void* data)
+    FASTDDS_EXPORTED_API virtual std::function<uint32_t()> get_serialized_size_provider(
+            const void* const data)
     {
         return get_serialized_size_provider(data, DEFAULT_DATA_REPRESENTATION);
     }
@@ -203,8 +189,8 @@ public:
      * @param[in] data_representation Representation that should be used for calculating the serialized size.
      * @return Functor which calculates the serialized size of the data.
      */
-    RTPS_DllAPI virtual std::function<uint32_t()> get_serialized_size_provider(
-            void* data,
+    FASTDDS_EXPORTED_API virtual std::function<uint32_t()> get_serialized_size_provider(
+            const void* const data,
             DataRepresentationId_t data_representation)
     {
         return get()->getSerializedSizeProvider(data, data_representation);
@@ -215,7 +201,7 @@ public:
      *
      * @return Pointer to the data
      */
-    RTPS_DllAPI virtual void* create_data()
+    FASTDDS_EXPORTED_API virtual void* create_data()
     {
         return get()->createData();
     }
@@ -225,7 +211,7 @@ public:
      *
      * @param data Pointer to the data to delete
      */
-    RTPS_DllAPI virtual void delete_data(
+    FASTDDS_EXPORTED_API virtual void delete_data(
             void* data)
     {
         return get()->deleteData(data);
@@ -239,7 +225,7 @@ public:
      * @param force_md5 boolean to force md5 (default: false)
      * @return true if the key is returned, false if not
      */
-    RTPS_DllAPI virtual bool get_key(
+    FASTDDS_EXPORTED_API virtual bool get_key(
             void* data,
             InstanceHandle_t* i_handle,
             bool force_md5 = false)
@@ -247,15 +233,13 @@ public:
         return get()->getKey(data, i_handle, force_md5);
     }
 
-    RTPS_DllAPI virtual bool operator ==(
+    FASTDDS_EXPORTED_API virtual bool operator ==(
             const TypeSupport& type_support)
     {
         return get()->m_typeSize == type_support->m_typeSize
                && get()->m_isGetKeyDefined == type_support->m_isGetKeyDefined
                && get()->m_topicDataTypeName == type_support->m_topicDataTypeName
-               && get()->type_identifier() == type_support->type_identifier()
-               && get()->type_information() == type_support->type_information()
-               && get()->type_object() == type_support->type_object();
+               && get()->type_identifiers_ == type_support->type_identifiers_;
     }
 
     /**
@@ -263,7 +247,7 @@ public:
      *
      * @return true if empty, false if not
      */
-    RTPS_DllAPI bool empty() const
+    FASTDDS_EXPORTED_API bool empty() const
     {
         return get() == nullptr;
     }
@@ -271,7 +255,7 @@ public:
     /**
      * Checks if the type is bounded.
      */
-    RTPS_DllAPI virtual inline bool is_bounded() const
+    FASTDDS_EXPORTED_API virtual inline bool is_bounded() const
     {
         return get()->is_bounded();
     }
@@ -279,7 +263,7 @@ public:
     /**
      * Checks if the type is plain when using default encoding.
      */
-    RTPS_DllAPI virtual inline bool is_plain() const
+    FASTDDS_EXPORTED_API virtual inline bool is_plain() const
     {
         return is_plain(DataRepresentationId_t::XCDR_DATA_REPRESENTATION);
     }
@@ -287,19 +271,19 @@ public:
     /**
      * Checks if the type is plain when using a specific encoding.
      */
-    RTPS_DllAPI virtual inline bool is_plain(
+    FASTDDS_EXPORTED_API virtual inline bool is_plain(
             DataRepresentationId_t data_representation) const
     {
         return get()->is_plain(data_representation);
     }
 
-    RTPS_DllAPI bool operator !=(
+    FASTDDS_EXPORTED_API bool operator !=(
             std::nullptr_t) const
     {
         return bool(*this);
     }
 
-    RTPS_DllAPI bool operator ==(
+    FASTDDS_EXPORTED_API bool operator ==(
             std::nullptr_t) const
     {
         return !*this;
@@ -307,8 +291,8 @@ public:
 
 };
 
-} /* namespace dds */
-} /* namespace fastdds */
-} /* namespace eprosima */
+} // namespace dds
+} // namespace fastdds
+} // namespace eprosima
 
-#endif /* _FASTDDS_TYPE_SUPPORT_HPP_ */
+#endif // FASTDDS_DDS_TOPIC__TYPESUPPORT_HPP

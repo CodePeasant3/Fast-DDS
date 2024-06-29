@@ -17,37 +17,34 @@
  *
  */
 
-#ifndef _FASTDDS_PARTICIPANTIMPL_HPP_
-#define _FASTDDS_PARTICIPANTIMPL_HPP_
+#ifndef FASTDDS_DOMAIN__DOMAINPARTICIPANTIMPL_HPP
+#define FASTDDS_DOMAIN__DOMAINPARTICIPANTIMPL_HPP
 #ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
 
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
-#include <fastdds/rtps/common/Guid.h>
-#include <fastdds/rtps/participant/RTPSParticipantListener.h>
-#include <fastdds/rtps/reader/StatefulReader.h>
-
+#include <fastdds/dds/core/ReturnCode.hpp>
+#include <fastdds/dds/core/status/StatusMask.hpp>
+#include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
+#include <fastdds/dds/domain/qos/ReplierQos.hpp>
+#include <fastdds/dds/domain/qos/RequesterQos.hpp>
 #include <fastdds/dds/publisher/qos/PublisherQos.hpp>
 #include <fastdds/dds/subscriber/qos/SubscriberQos.hpp>
-#include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
-#include <fastdds/dds/topic/qos/TopicQos.hpp>
 #include <fastdds/dds/topic/ContentFilteredTopic.hpp>
 #include <fastdds/dds/topic/IContentFilterFactory.hpp>
+#include <fastdds/dds/topic/qos/TopicQos.hpp>
 #include <fastdds/dds/topic/Topic.hpp>
-
 #include <fastdds/dds/topic/TypeSupport.hpp>
-#include <fastdds/dds/core/status/StatusMask.hpp>
-#include <fastrtps/types/TypesBase.h>
-
+#include <fastdds/rtps/common/Guid.hpp>
+#include <fastdds/rtps/participant/RTPSParticipantListener.hpp>
 #include "fastdds/topic/DDSSQLFilter/DDSFilterFactory.hpp"
 #include <fastdds/topic/TopicProxyFactory.hpp>
-
-using eprosima::fastrtps::types::ReturnCode_t;
+#include <rtps/reader/StatefulReader.hpp>
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 
 namespace rtps {
 
@@ -60,9 +57,6 @@ class ReaderProxyData;
 class PublisherAttributes;
 class SubscriberAttributes;
 
-} // namespace fastrtps
-
-namespace fastdds {
 namespace dds {
 
 class DomainParticipant;
@@ -77,7 +71,7 @@ class ReaderFilterCollection;
 
 /**
  * This is the implementation class of the DomainParticipant.
- * @ingroup FASTRTPS_MODULE
+ * @ingroup FASTDDS_MODULE
  */
 class DomainParticipantImpl
 {
@@ -125,12 +119,12 @@ public:
                     return !(rtps_listener_.callback_counter_ > 0);
                 }))
         {
-            return ReturnCode_t::RETCODE_ERROR;
+            return RETCODE_ERROR;
         }
 
         rtps_listener_.callback_counter_ = (listener == nullptr) ? -1 : 0;
         listener_ = listener;
-        return ReturnCode_t::RETCODE_OK;
+        return RETCODE_OK;
     }
 
     DomainParticipantListener* get_listener() const
@@ -254,7 +248,7 @@ public:
      */
     Topic* find_topic(
             const std::string& topic_name,
-            const fastrtps::Duration_t& timeout);
+            const fastdds::Duration_t& timeout);
 
     /**
      * Implementation of Topic::set_listener that propagates the listener and mask to all the TopicProxy
@@ -376,7 +370,7 @@ public:
 
     const PublisherQos& get_default_publisher_qos() const;
 
-    const ReturnCode_t get_publisher_qos_from_profile(
+    ReturnCode_t get_publisher_qos_from_profile(
             const std::string& profile_name,
             PublisherQos& qos) const;
 
@@ -387,7 +381,7 @@ public:
 
     const SubscriberQos& get_default_subscriber_qos() const;
 
-    const ReturnCode_t get_subscriber_qos_from_profile(
+    ReturnCode_t get_subscriber_qos_from_profile(
             const std::string& profile_name,
             SubscriberQos& qos) const;
 
@@ -398,9 +392,17 @@ public:
 
     const TopicQos& get_default_topic_qos() const;
 
-    const ReturnCode_t get_topic_qos_from_profile(
+    ReturnCode_t get_topic_qos_from_profile(
             const std::string& profile_name,
             TopicQos& qos) const;
+
+    ReturnCode_t get_replier_qos_from_profile(
+            const std::string& profile_name,
+            ReplierQos& qos) const;
+
+    ReturnCode_t get_requester_qos_from_profile(
+            const std::string& profile_name,
+            RequesterQos& qos) const;
 
     /* TODO
        bool get_discovered_participants(
@@ -429,7 +431,7 @@ public:
             bool recursive = true) const;
 
     ReturnCode_t get_current_time(
-            fastrtps::Time_t& current_time) const;
+            fastdds::Time_t& current_time) const;
 
     const DomainParticipant* get_participant() const
     {
@@ -443,13 +445,13 @@ public:
         return participant_;
     }
 
-    const fastrtps::rtps::RTPSParticipant* get_rtps_participant() const
+    const fastdds::rtps::RTPSParticipant* get_rtps_participant() const
     {
         std::lock_guard<std::mutex> _(mtx_gs_);
         return rtps_participant_;
     }
 
-    fastrtps::rtps::RTPSParticipant* get_rtps_participant()
+    fastdds::rtps::RTPSParticipant* get_rtps_participant()
     {
         std::lock_guard<std::mutex> _(mtx_gs_);
         return rtps_participant_;
@@ -462,13 +464,13 @@ public:
 
     // From here legacy RTPS methods.
 
-    const fastrtps::rtps::GUID_t& guid() const;
+    const fastdds::rtps::GUID_t& guid() const;
 
     std::vector<std::string> get_participant_names() const;
 
     /**
      * This method can be used when using a StaticEndpointDiscovery mechanism different that the one
-     * included in FastRTPS, for example when communicating with other implementations.
+     * included in Fast DDS, for example when communicating with other implementations.
      * It indicates the Participant that an Endpoint from the XML has been discovered and
      * should be activated.
      * @param partguid Participant GUID_t.
@@ -477,39 +479,11 @@ public:
      * @return True if correctly found and activated.
      */
     bool new_remote_endpoint_discovered(
-            const fastrtps::rtps::GUID_t& partguid,
+            const fastdds::rtps::GUID_t& partguid,
             uint16_t userId,
-            fastrtps::rtps::EndpointKind_t kind);
+            fastdds::rtps::EndpointKind_t kind);
 
-    fastrtps::rtps::ResourceEvent& get_resource_event() const;
-
-    fastrtps::rtps::SampleIdentity get_type_dependencies(
-            const fastrtps::types::TypeIdentifierSeq& in) const;
-
-    fastrtps::rtps::SampleIdentity get_types(
-            const fastrtps::types::TypeIdentifierSeq& in) const;
-
-    /**
-     * Helps the user to solve all dependencies calling internally to the typelookup service and
-     * registers the resulting dynamic type.
-     * The registration may be perform asynchronously, case in which the user will be notified
-     * through the given callback, which receives the type_name as unique argument.
-     *
-     * @param type_information
-     * @param type_name
-     * @param callback
-     * @return RETCODE_OK If the given type_information is enough to build the type without using
-     *         the typelookup service (callback will not be called).
-     * @return RETCODE_OK if the given type is already available (callback will not be called).
-     * @return RETCODE_NO_DATA if type is not available yet (the callback will be called if
-     *         negotiation is success, and ignored in other case).
-     * @return RETCODE_NOT_ENABLED if the DomainParticipant is not enabled.
-     * @return RETCODE_PRECONDITION_NOT_MET if the DomainParticipant type lookup service is disabled.
-     */
-    ReturnCode_t register_remote_type(
-            const fastrtps::types::TypeInformation& type_information,
-            const std::string& type_name,
-            std::function<void(const std::string& name, const fastrtps::types::DynamicType_ptr type)>& callback);
+    fastdds::rtps::ResourceEvent& get_resource_event() const;
 
     //! Remove all listeners in the hierarchy to allow a quiet destruction
     virtual void disable();
@@ -542,7 +516,7 @@ protected:
     int32_t participant_id_ = -1;
 
     //!Pre-calculated guid
-    fastrtps::rtps::GUID_t guid_;
+    fastdds::rtps::GUID_t guid_;
 
     //!For instance handle creation
     std::atomic<uint32_t> next_instance_id_;
@@ -551,7 +525,7 @@ protected:
     DomainParticipantQos qos_;
 
     //!RTPSParticipant
-    fastrtps::rtps::RTPSParticipant* rtps_participant_;
+    fastdds::rtps::RTPSParticipant* rtps_participant_;
 
     //!Participant*
     DomainParticipant* participant_;
@@ -594,24 +568,9 @@ protected:
 
     TopicQos default_topic_qos_;
 
-    // Mutex for requests and callbacks maps.
-    std::mutex mtx_request_cb_;
-
-    // register_remote_type parent request, type_name, callback relationship.
-    std::map<fastrtps::rtps::SampleIdentity,
-            std::pair<std::string, std::function<void(
-                const std::string& name,
-                const fastrtps::types::DynamicType_ptr)>>> register_callbacks_;
-
-    // Relationship between child and parent request
-    std::map<fastrtps::rtps::SampleIdentity, fastrtps::rtps::SampleIdentity> child_requests_;
-
-    // All parent's child requests
-    std::map<fastrtps::rtps::SampleIdentity, std::vector<fastrtps::rtps::SampleIdentity>> parent_requests_;
-
     std::atomic<uint32_t> id_counter_;
 
-    class MyRTPSParticipantListener : public fastrtps::rtps::RTPSParticipantListener
+    class MyRTPSParticipantListener : public fastdds::rtps::RTPSParticipantListener
     {
         struct Sentry
         {
@@ -662,10 +621,6 @@ protected:
             bool on_guard_;
         };
 
-        using fastrtps::rtps::RTPSParticipantListener::onParticipantDiscovery;
-        using fastrtps::rtps::RTPSParticipantListener::onReaderDiscovery;
-        using fastrtps::rtps::RTPSParticipantListener::onWriterDiscovery;
-
     public:
 
         MyRTPSParticipantListener(
@@ -680,42 +635,25 @@ protected:
         }
 
         void onParticipantDiscovery(
-                fastrtps::rtps::RTPSParticipant* participant,
-                fastrtps::rtps::ParticipantDiscoveryInfo&& info,
+                fastdds::rtps::RTPSParticipant* participant,
+                fastdds::rtps::ParticipantDiscoveryInfo&& info,
                 bool& should_be_ignored) override;
 
 #if HAVE_SECURITY
         void onParticipantAuthentication(
-                fastrtps::rtps::RTPSParticipant* participant,
-                fastrtps::rtps::ParticipantAuthenticationInfo&& info) override;
+                fastdds::rtps::RTPSParticipant* participant,
+                fastdds::rtps::ParticipantAuthenticationInfo&& info) override;
 #endif // if HAVE_SECURITY
 
         void onReaderDiscovery(
-                fastrtps::rtps::RTPSParticipant* participant,
-                fastrtps::rtps::ReaderDiscoveryInfo&& info) override;
+                fastdds::rtps::RTPSParticipant* participant,
+                fastdds::rtps::ReaderDiscoveryInfo&& info,
+                bool& should_be_ignored) override;
 
         void onWriterDiscovery(
-                fastrtps::rtps::RTPSParticipant* participant,
-                fastrtps::rtps::WriterDiscoveryInfo&& info) override;
-
-        void on_type_discovery(
-                fastrtps::rtps::RTPSParticipant* participant,
-                const fastrtps::rtps::SampleIdentity& request_sample_id,
-                const fastrtps::string_255& topic,
-                const fastrtps::types::TypeIdentifier* identifier,
-                const fastrtps::types::TypeObject* object,
-                fastrtps::types::DynamicType_ptr dyn_type) override;
-
-        void on_type_dependencies_reply(
-                fastrtps::rtps::RTPSParticipant* participant,
-                const fastrtps::rtps::SampleIdentity& request_sample_id,
-                const fastrtps::types::TypeIdentifierWithSizeSeq& dependencies) override;
-
-        void on_type_information_received(
-                fastrtps::rtps::RTPSParticipant* participant,
-                const fastrtps::string_255& topic_name,
-                const fastrtps::string_255& type_name,
-                const fastrtps::types::TypeInformation& type_information) override;
+                fastdds::rtps::RTPSParticipant* participant,
+                fastdds::rtps::WriterDiscoveryInfo&& info,
+                bool& should_be_ignored) override;
 
         DomainParticipantImpl* participant_;
         int callback_counter_ = 0;
@@ -727,20 +665,7 @@ protected:
             InstanceHandle_t& handle);
 
     ReturnCode_t register_dynamic_type(
-            fastrtps::types::DynamicType_ptr dyn_type);
-
-    bool register_dynamic_type_to_factories(
-            const TypeSupport& type) const;
-
-    bool check_get_type_request(
-            const fastrtps::rtps::SampleIdentity& requestId,
-            const fastrtps::types::TypeIdentifier* identifier,
-            const fastrtps::types::TypeObject* object,
-            fastrtps::types::DynamicType_ptr dyn_type);
-
-    bool check_get_dependencies_request(
-            const fastrtps::rtps::SampleIdentity& requestId,
-            const fastrtps::types::TypeIdentifierWithSizeSeq& dependencies);
+            DynamicType::_ref_type dyn_type);
 
     virtual PublisherImpl* create_publisher_impl(
             const PublisherQos& qos,
@@ -749,26 +674,6 @@ protected:
     virtual SubscriberImpl* create_subscriber_impl(
             const SubscriberQos& qos,
             SubscriberListener* listener);
-
-    // Always call it with the mutex already taken
-    void remove_parent_request(
-            const fastrtps::rtps::SampleIdentity& request);
-
-    // Always call it with the mutex already taken
-    void remove_child_request(
-            const fastrtps::rtps::SampleIdentity& request);
-
-    // Always call it with the mutex already taken
-    void on_child_requests_finished(
-            const fastrtps::rtps::SampleIdentity& parent);
-
-    void fill_pending_dependencies(
-            const fastrtps::types::TypeIdentifierWithSizeSeq& dependencies,
-            fastrtps::types::TypeIdentifierSeq& pending_identifiers,
-            fastrtps::types::TypeIdentifierSeq& pending_objects) const;
-
-    std::string get_inner_type_name(
-            const fastrtps::rtps::SampleIdentity& id) const;
 
     IContentFilterFactory* find_content_filter_factory(
             const char* filter_class_name);
@@ -796,8 +701,8 @@ protected:
             const DomainParticipantQos& from);
 };
 
-} /* namespace dds */
-} /* namespace fastdds */
-} /* namespace eprosima */
+} // namespace dds
+} // namespace fastdds
+} // namespace eprosima
 #endif // ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
-#endif /* _FASTDDS_PARTICIPANTIMPL_HPP_ */
+#endif // FASTDDS_DOMAIN__DOMAINPARTICIPANTIMPL_HPP

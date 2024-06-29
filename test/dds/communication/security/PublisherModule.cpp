@@ -32,7 +32,7 @@
 #include <fastdds/dds/publisher/qos/PublisherQos.hpp>
 
 using namespace eprosima::fastdds::dds;
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds::rtps;
 
 PublisherModule::~PublisherModule()
 {
@@ -145,7 +145,7 @@ void PublisherModule::run(
     {
         if (zero_copy_)
         {
-            if (ReturnCode_t::RETCODE_OK == writer_->loan_sample(sample))
+            if (RETCODE_OK == writer_->loan_sample(sample))
             {
                 FixedSized* data = static_cast<FixedSized*>(sample);
                 data->index(index);
@@ -214,7 +214,8 @@ void PublisherModule::on_publication_matched(
 
 void PublisherModule::on_participant_discovery(
         DomainParticipant* /*participant*/,
-        ParticipantDiscoveryInfo&& info)
+        ParticipantDiscoveryInfo&& info,
+        bool& /*should_be_ignored*/)
 {
     if (info.status == ParticipantDiscoveryInfo::DISCOVERED_PARTICIPANT)
     {

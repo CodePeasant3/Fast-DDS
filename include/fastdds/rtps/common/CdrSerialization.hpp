@@ -16,15 +16,15 @@
  * @file CdrSerialization.hpp
  */
 
-#ifndef FASTDDS_RTPS_COMMON_CDRSERIALIZATION_HPP
-#define FASTDDS_RTPS_COMMON_CDRSERIALIZATION_HPP
+#ifndef FASTDDS_RTPS_COMMON__CDRSERIALIZATION_HPP
+#define FASTDDS_RTPS_COMMON__CDRSERIALIZATION_HPP
 
 #include <fastcdr/Cdr.h>
 
 #if FASTCDR_VERSION_MAJOR == 1
 
 #include <fastcdr/exceptions/BadParamException.h>
-#include <fastrtps/utils/fixed_size_string.hpp>
+#include <fastcdr/cdr/fixed_size_string.hpp>
 
 namespace eprosima {
 namespace fastcdr {
@@ -74,7 +74,7 @@ public:
 };
 
 template<size_t MAX_CHARS>
-using fixed_string = eprosima::fastrtps::fixed_string<MAX_CHARS>;
+using fastcdr::fixed_string = eprosima::fastcdr::fixed_string<MAX_CHARS>;
 
 } // namespace fastcdr
 } // namespace eprosima
@@ -103,4 +103,4 @@ constexpr eprosima::fastcdr::CdrVersion DEFAULT_XCDR_VERSION {eprosima::fastcdr:
 
 #endif //FASTCDR_VERSION_MAJOR == 1
 
-#endif // FASTDDS_RTPS_COMMON_CDRSERIALIZATION_HPP
+#endif // FASTDDS_RTPS_COMMON__CDRSERIALIZATION_HPP

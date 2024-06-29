@@ -17,20 +17,19 @@
 #include <limits>
 #include <utility>
 
-#include <fastdds/rtps/common/Guid.h>
+#include <fastdds/rtps/common/Guid.hpp>
 #include <fastdds/rtps/common/LocatorList.hpp>
-#include <fastdds/rtps/participant/RTPSParticipant.h>
-#include <fastdds/rtps/transport/TransportDescriptorInterface.h>
-#include <fastrtps/utils/IPFinder.h>
-#include <fastrtps/utils/IPLocator.h>
+#include <fastdds/rtps/participant/RTPSParticipant.hpp>
+#include <fastdds/rtps/transport/TransportDescriptorInterface.hpp>
+#include <fastdds/utils/IPFinder.hpp>
+#include <fastdds/utils/IPLocator.hpp>
 
 #include <rtps/transport/TCPTransportInterface.h>
 
 using namespace std;
-using namespace eprosima::fastdds::rtps;
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 using SendResourceList = fastdds::rtps::SendResourceList;
@@ -132,7 +131,7 @@ bool NetworkFactory::BuildReceiverResources(
 
 bool NetworkFactory::RegisterTransport(
         const TransportDescriptorInterface* descriptor,
-        const fastrtps::rtps::PropertyPolicy* properties,
+        const fastdds::rtps::PropertyPolicy* properties,
         const uint32_t& max_msg_size_no_frag)
 {
     bool wasRegistered = false;
@@ -460,30 +459,27 @@ bool NetworkFactory::configureInitialPeerLocator(
 }
 
 bool NetworkFactory::getDefaultUnicastLocators(
-        uint32_t domain_id,
         LocatorList_t& locators,
-        const RTPSParticipantAttributes& m_att) const
+        uint32_t port) const
 {
     bool result = false;
     for (auto& transport : mRegisteredTransports)
     {
-        result |= transport->getDefaultUnicastLocators(locators, calculate_well_known_port(domain_id, m_att, false));
+        result |= transport->getDefaultUnicastLocators(locators, port);
     }
     return result;
 }
 
 bool NetworkFactory::fill_default_locator_port(
-        uint32_t domain_id,
         Locator_t& locator,
-        const RTPSParticipantAttributes& m_att,
-        bool is_multicast) const
+        uint32_t port) const
 {
     bool result = false;
     for (auto& transport : mRegisteredTransports)
     {
         if (transport->IsLocatorSupported(locator))
         {
-            result |= transport->fillUnicastLocator(locator, calculate_well_known_port(domain_id, m_att, is_multicast));
+            result |= transport->fillUnicastLocator(locator, port);
         }
     }
     return result;
@@ -561,5 +557,5 @@ std::vector<TransportNetmaskFilterInfo> NetworkFactory::netmask_filter_info() co
 }
 
 } // namespace rtps
-} // namespace fastrtps
+} // namespace fastdds
 } // namespace eprosima

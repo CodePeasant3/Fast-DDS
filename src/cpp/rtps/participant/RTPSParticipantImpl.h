@@ -16,18 +16,20 @@
  * @file RTPSParticipantImpl.h
  */
 
-#ifndef _RTPS_PARTICIPANT_RTPSPARTICIPANTIMPL_H_
-#define _RTPS_PARTICIPANT_RTPSPARTICIPANTIMPL_H_
+#ifndef FASTDDS_RTPS_PARTICIPANT__RTPSPARTICIPANTIMPL_H
+#define FASTDDS_RTPS_PARTICIPANT__RTPSPARTICIPANTIMPL_H
 #ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
 
 #include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
 #include <list>
 #include <mutex>
 #include <set>
 #include <sys/types.h>
+#include <vector>
 
 #if defined(_WIN32)
 #include <process.h>
@@ -35,32 +37,33 @@
 #include <unistd.h>
 #endif // if defined(_WIN32)
 
-#include <fastdds/rtps/attributes/RTPSParticipantAttributes.h>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
 #include <fastdds/rtps/builtin/data/ContentFilterProperty.hpp>
-#include <fastdds/rtps/builtin/data/ReaderProxyData.h>
-#include <fastdds/rtps/builtin/data/WriterProxyData.h>
-#include <fastdds/rtps/common/Guid.h>
+#include <fastdds/rtps/builtin/data/ReaderProxyData.hpp>
+#include <fastdds/rtps/builtin/data/WriterProxyData.hpp>
+#include <fastdds/rtps/common/Guid.hpp>
 #include <fastdds/rtps/common/LocatorList.hpp>
-#include <fastdds/rtps/history/IChangePool.h>
-#include <fastdds/rtps/history/IPayloadPool.h>
-#include <fastdds/rtps/messages/MessageReceiver.h>
-#include <fastdds/rtps/resources/ResourceEvent.h>
-#include <fastdds/rtps/transport/SenderResource.h>
-#include <fastdds/statistics/rtps/monitor_service/interfaces/IConnectionsQueryable.hpp>
-#include <fastrtps/utils/Semaphore.h>
-#include <fastrtps/utils/shared_mutex.hpp>
+#include <fastdds/rtps/history/IChangePool.hpp>
+#include <fastdds/rtps/history/IPayloadPool.hpp>
+#include <fastdds/rtps/transport/SenderResource.hpp>
 
 #include "../flowcontrol/FlowControllerFactory.hpp"
+#include <rtps/messages/MessageReceiver.h>
 #include <rtps/messages/RTPSMessageGroup_t.hpp>
 #include <rtps/messages/SendBuffersManager.hpp>
 #include <rtps/network/NetworkFactory.h>
 #include <rtps/network/ReceiverResource.h>
+#include <rtps/resources/ResourceEvent.h>
+#include <statistics/rtps/monitor-service/interfaces/IConnectionsObserver.hpp>
+#include <statistics/rtps/monitor-service/interfaces/IConnectionsQueryable.hpp>
 #include <statistics/rtps/StatisticsBase.hpp>
-#include <statistics/types/monitorservice_types.h>
+#include <statistics/types/monitorservice_types.hpp>
+#include <utils/shared_mutex.hpp>
+#include <utils/Semaphore.hpp>
 
 #if HAVE_SECURITY
-#include <fastdds/rtps/Endpoint.h>
-#include <fastdds/rtps/security/accesscontrol/ParticipantSecurityAttributes.h>
+#include <fastdds/rtps/Endpoint.hpp>
+#include <rtps/security/accesscontrol/ParticipantSecurityAttributes.h>
 #include <rtps/security/SecurityManager.h>
 #include <rtps/security/SecurityPluginFactory.h>
 #endif // if HAVE_SECURITY
@@ -85,6 +88,12 @@ class MonitorService;
 
 #endif //FASTDDS_STATISTICS
 
+namespace rtps {
+
+class BaseReader;
+
+} // namespace rtps
+
 namespace dds {
 namespace builtin {
 
@@ -94,7 +103,7 @@ class TypeLookupManager;
 } // namespace dds
 } // namespace fastdds
 
-namespace fastrtps {
+namespace fastdds {
 
 class TopicAttributes;
 class MessageReceiver;
@@ -132,6 +141,9 @@ class RTPSParticipantImpl
     , private security::SecurityPluginFactory
 #endif // if HAVE_SECURITY
 {
+
+    using BaseReader = fastdds::rtps::BaseReader;
+
     /*
        Receiver Control block is a struct we use to encapsulate the resources that take part in message reception.
        It contains:
@@ -273,7 +285,8 @@ public:
 
     /**
      * Send a message to several locations
-     * @param msg Message to send.
+     * @param buffers Vector of buffers to send.
+     * @param total_bytes Total number of bytes to send.
      * @param sender_guid GUID of the producer of the message.
      * @param destination_locators_begin Iterator at the first destination locator.
      * @param destination_locators_end Iterator at the end destination locator.
@@ -282,7 +295,8 @@ public:
      */
     template<class LocatorIteratorT>
     bool sendSync(
-            CDRMessage_t* msg,
+            const std::vector<eprosima::fastdds::rtps::NetworkBuffer>& buffers,
+            const uint32_t& total_bytes,
             const GUID_t& sender_guid,
             const LocatorIteratorT& destination_locators_begin,
             const LocatorIteratorT& destination_locators_end,
@@ -302,7 +316,7 @@ public:
             {
                 LocatorIteratorT locators_begin = destination_locators_begin;
                 LocatorIteratorT locators_end = destination_locators_end;
-                send_resource->send(msg->buffer, msg->length, &locators_begin, &locators_end,
+                send_resource->send(buffers, total_bytes, &locators_begin, &locators_end,
                         max_blocking_time_point);
             }
 
@@ -313,7 +327,7 @@ public:
                 sender_guid,
                 destination_locators_begin,
                 destination_locators_end,
-                msg->length);
+                total_bytes);
 
             // checkout if sender is a discovery endpoint
             on_discovery_packet(
@@ -371,7 +385,7 @@ public:
     /*!
      * @remarks Non thread-safe.
      */
-    const std::vector<RTPSReader*>& getAllReaders() const;
+    const std::vector<BaseReader*>& getAllReaders() const;
 
     uint32_t getMaxMessageSize() const;
 
@@ -477,7 +491,7 @@ public:
     /***
      * @returns A pointer to a local reader given its endpoint guid, or nullptr if not found.
      */
-    RTPSReader* find_local_reader(
+    BaseReader* find_local_reader(
             const GUID_t& reader_guid);
 
     /***
@@ -550,14 +564,14 @@ private:
     uint32_t domain_id_;
     //!Attributes of the RTPSParticipant
     RTPSParticipantAttributes m_att;
+    //! Metatraffic unicast port used by default on this participant
+    uint32_t metatraffic_unicast_port_ = 0;
     //!Guid of the RTPSParticipant.
     GUID_t m_guid;
     //! String containing the RTPSParticipant Guid.
     std::string guid_str_;
     //!Persistence guid of the RTPSParticipant
     GUID_t m_persistence_guid;
-    //! Sending resources. - DEPRECATED -Stays commented for reference purposes
-    // ResourceSend* mp_send_thr;
     //! Event Resource
     ResourceEvent mp_event_thr;
     //! BuiltinProtocols of this RTPSParticipant
@@ -569,18 +583,20 @@ private:
     //!Writer List.
     std::vector<RTPSWriter*> m_allWriterList;
     //!Reader List
-    std::vector<RTPSReader*> m_allReaderList;
+    std::vector<BaseReader*> m_allReaderList;
     //!Listen thread list.
     //!Writer List.
     std::vector<RTPSWriter*> m_userWriterList;
     //!Reader List
-    std::vector<RTPSReader*> m_userReaderList;
+    std::vector<BaseReader*> m_userReaderList;
     //!Network Factory
     NetworkFactory m_network_Factory;
     //! Type cheking function
     std::function<bool(const std::string&)> type_check_fn_;
     //!Pool of send buffers
     std::unique_ptr<SendBuffersManager> send_buffers_;
+    //! Maximum number of bytes allowed for an RTPS datagram generated by this writer.
+    uint32_t max_output_message_size_ = std::numeric_limits<uint32_t>::max();
 
     /**
      * Client override flag: SIMPLE participant that has been overriden with the environment variable and transformed
@@ -621,6 +637,11 @@ private:
     std::set<GUID_t> ignored_readers_;
     //! Protect ignored entities collection concurrent access
     mutable shared_mutex ignored_mtx_;
+
+    void setup_meta_traffic();
+    void setup_user_traffic();
+    void setup_initial_peers();
+    void setup_output_traffic();
 
     RTPSParticipantImpl& operator =(
             const RTPSParticipantImpl&) = delete;
@@ -809,45 +830,23 @@ public:
 
     /**
      * Create a Writer in this RTPSParticipant with a custom payload pool.
-     * @param Writer Pointer to pointer of the Writer, used as output. Only valid if return==true.
-     * @param param WriterAttributes to define the Writer.
-     * @param payload_pool Shared pointer to the IPayloadPool
-     * @param hist Pointer to the WriterHistory.
-     * @param listen Pointer to the WriterListener.
-     * @param entityId EntityId assigned to the Writer.
-     * @param isBuiltin Bool value indicating if the Writer is builtin (Discovery or Liveliness protocol) or is created for the end user.
-     * @return True if the Writer was correctly created.
-     */
-    bool createWriter(
-            RTPSWriter** Writer,
-            WriterAttributes& param,
-            const std::shared_ptr<IPayloadPool>& payload_pool,
-            WriterHistory* hist,
-            WriterListener* listen,
-            const EntityId_t& entityId = c_EntityId_Unknown,
-            bool isBuiltin = false);
-
-    /**
-     * Create a Writer in this RTPSParticipant with a custom payload pool.
-     * @param Writer Pointer to pointer of the Writer, used as output. Only valid if return==true.
-     * @param watt WriterAttributes to define the Writer.
-     * @param payload_pool Shared pointer to the IPayloadPool
-     * @param change_pool Shared pointer to the IChangePool
-     * @param hist Pointer to the WriterHistory.
-     * @param listen Pointer to the WriterListener.
-     * @param entityId EntityId assigned to the Writer.
-     * @param isBuiltin Bool value indicating if the Writer is builtin (Discovery or Liveliness protocol) or is created for the end user.
+     *
+     * @param Writer     Pointer to pointer of the Writer, used as output. Only valid if return==true.
+     * @param watt       WriterAttributes to define the Writer.
+     * @param hist       Pointer to the WriterHistory.
+     * @param listen     Pointer to the WriterListener.
+     * @param entityId   EntityId assigned to the Writer.
+     * @param isBuiltin  Bool value indicating if the Writer is builtin (Discovery or Liveliness protocol) or is created for the end user.
+     *
      * @return True if the Writer was correctly created.
      */
     bool create_writer(
             RTPSWriter** Writer,
             WriterAttributes& watt,
-            const std::shared_ptr<IPayloadPool>& payload_pool,
-            const std::shared_ptr<IChangePool>& change_pool,
             WriterHistory* hist,
             WriterListener* listen,
-            const EntityId_t& entityId = c_EntityId_Unknown,
-            bool isBuiltin = false);
+            const EntityId_t& entityId,
+            bool isBuiltin);
 
     /**
      * Create a Reader in this RTPSParticipant.
@@ -907,7 +906,7 @@ public:
     bool registerWriter(
             RTPSWriter* Writer,
             const TopicAttributes& topicAtt,
-            const WriterQos& wqos);
+            const fastdds::dds::WriterQos& wqos);
 
     /**
      * Register a Reader in the BuiltinProtocols.
@@ -920,7 +919,7 @@ public:
     bool registerReader(
             RTPSReader* Reader,
             const TopicAttributes& topicAtt,
-            const ReaderQos& rqos,
+            const fastdds::dds::ReaderQos& rqos,
             const fastdds::rtps::ContentFilterProperty* content_filter = nullptr);
 
     /**
@@ -940,7 +939,7 @@ public:
     bool updateLocalWriter(
             RTPSWriter* Writer,
             const TopicAttributes& topicAtt,
-            const WriterQos& wqos);
+            const fastdds::dds::WriterQos& wqos);
 
     /**
      * Update local reader QoS
@@ -953,7 +952,7 @@ public:
     bool updateLocalReader(
             RTPSReader* Reader,
             const TopicAttributes& topicAtt,
-            const ReaderQos& rqos,
+            const fastdds::dds::ReaderQos& rqos,
             const fastdds::rtps::ContentFilterProperty* content_filter = nullptr);
 
     /**
@@ -1010,7 +1009,7 @@ public:
         // check if we are reentrying
         shared_lock<shared_mutex> _(endpoints_list_mutex);
 
-        for ( RTPSReader* pr : m_userReaderList)
+        for (BaseReader* pr : m_userReaderList)
         {
             if (!f(*pr))
             {
@@ -1232,7 +1231,7 @@ public:
      * @return true if the operation succeeds.
      */
     bool fill_discovery_data_from_cdr_message(
-            fastrtps::rtps::ParticipantProxyData& data,
+            fastdds::rtps::ParticipantProxyData& data,
             fastdds::statistics::MonitorServiceStatusData& msg);
 
     /**
@@ -1244,7 +1243,7 @@ public:
      * @return true if the operation succeeds.
      */
     bool fill_discovery_data_from_cdr_message(
-            fastrtps::rtps::WriterProxyData& data,
+            fastdds::rtps::WriterProxyData& data,
             fastdds::statistics::MonitorServiceStatusData& msg);
 
     /**
@@ -1256,7 +1255,7 @@ public:
      * @return true if the operation succeeds.
      */
     bool fill_discovery_data_from_cdr_message(
-            fastrtps::rtps::ReaderProxyData& data,
+            fastdds::rtps::ReaderProxyData& data,
             fastdds::statistics::MonitorServiceStatusData& msg);
 
     bool get_entity_connections(
@@ -1296,4 +1295,4 @@ public:
 } /* namespace rtps */
 } /* namespace eprosima */
 #endif // ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
-#endif //_RTPS_PARTICIPANT_RTPSPARTICIPANTIMPL_H_
+#endif //FASTDDS_RTPS_PARTICIPANT__RTPSPARTICIPANTIMPL_H

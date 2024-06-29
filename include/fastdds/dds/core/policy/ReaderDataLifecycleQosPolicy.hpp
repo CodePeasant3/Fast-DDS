@@ -16,14 +16,14 @@
  * @file ReaderDataLifecycleQosPolicy.hpp
  */
 
-#ifndef _FASTDDS_READERDATALIFECYCLEQOSPOLICY_HPP_
-#define _FASTDDS_READERDATALIFECYCLEQOSPOLICY_HPP_
+#ifndef FASTDDS_DDS_CORE_POLICY__READERDATALIFECYCLEQOSPOLICY_HPP
+#define FASTDDS_DDS_CORE_POLICY__READERDATALIFECYCLEQOSPOLICY_HPP
 
-#include <fastdds/rtps/common/Time_t.h>
+#include <fastdds/rtps/common/Time_t.hpp>
 
 #include <fastdds/dds/core/policy/QosPolicies.hpp>
 
-using eprosima::fastrtps::Duration_t;
+using eprosima::fastdds::Duration_t;
 
 namespace eprosima {
 namespace fastdds {
@@ -48,7 +48,7 @@ public:
     /**
      * @brief Destructor
      */
-    virtual RTPS_DllAPI ~ReaderDataLifecycleQosPolicy()
+    virtual FASTDDS_EXPORTED_API ~ReaderDataLifecycleQosPolicy()
     {
     }
 
@@ -85,4 +85,4 @@ public:
 } //namespace fastdds
 } //namespace eprosima
 
-#endif // _FASTDDS_READERDATALIFECYCLEQOSPOLICY_HPP_
+#endif // FASTDDS_DDS_CORE_POLICY__READERDATALIFECYCLEQOSPOLICY_HPP

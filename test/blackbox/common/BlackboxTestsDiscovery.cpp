@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include <atomic>
 #include <thread>
 
@@ -22,28 +21,28 @@
 
 #include <gtest/gtest.h>
 
+#include <fastcdr/Cdr.h>
+#include <fastcdr/FastBuffer.h>
+
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 #include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
-#include <fastdds/rtps/attributes/ServerAttributes.h>
-#include <fastdds/rtps/common/CDRMessage_t.h>
-#include <fastdds/rtps/transport/UDPv4TransportDescriptor.h>
-#include <fastrtps/xmlparser/XMLProfileManager.h>
+#include <fastdds/rtps/attributes/ServerAttributes.hpp>
+#include <fastdds/rtps/common/CDRMessage_t.hpp>
+#include <fastdds/rtps/messages/RTPS_messages.hpp>
+#include <fastdds/rtps/transport/test_UDPv4TransportDescriptor.hpp>
+#include <fastdds/rtps/transport/UDPv4TransportDescriptor.hpp>
 
-#include <rtps/transport/test_UDPv4Transport.h>
-#include <utils/SystemInfo.hpp>
-
+#include "../utils/filter_helpers.hpp"
 #include "BlackboxTests.hpp"
 #include "DatagramInjectionTransport.hpp"
 #include "PubSubReader.hpp"
 #include "PubSubWriter.hpp"
 #include "PubSubWriterReader.hpp"
 
-using namespace eprosima::fastrtps;
-using namespace eprosima::fastrtps::rtps;
-using test_UDPv4Transport = eprosima::fastdds::rtps::test_UDPv4Transport;
-using test_UDPv4TransportDescriptor = eprosima::fastdds::rtps::test_UDPv4TransportDescriptor;
+using namespace eprosima::fastdds;
+using namespace eprosima::fastdds::rtps;
 
 enum communication_type
 {
@@ -58,12 +57,12 @@ public:
 
     void SetUp() override
     {
-        LibrarySettingsAttributes library_settings;
+        eprosima::fastdds::LibrarySettings library_settings;
         switch (GetParam())
         {
             case INTRAPROCESS:
-                library_settings.intraprocess_delivery = IntraprocessDeliveryType::INTRAPROCESS_FULL;
-                xmlparser::XMLProfileManager::library_settings(library_settings);
+                library_settings.intraprocess_delivery = eprosima::fastdds::IntraprocessDeliveryType::INTRAPROCESS_FULL;
+                eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->set_library_settings(library_settings);
                 break;
             case DATASHARING:
                 enable_datasharing = true;
@@ -76,12 +75,12 @@ public:
 
     void TearDown() override
     {
-        LibrarySettingsAttributes library_settings;
+        eprosima::fastdds::LibrarySettings library_settings;
         switch (GetParam())
         {
             case INTRAPROCESS:
-                library_settings.intraprocess_delivery = IntraprocessDeliveryType::INTRAPROCESS_OFF;
-                xmlparser::XMLProfileManager::library_settings(library_settings);
+                library_settings.intraprocess_delivery = eprosima::fastdds::IntraprocessDeliveryType::INTRAPROCESS_OFF;
+                eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->set_library_settings(library_settings);
                 break;
             case DATASHARING:
                 enable_datasharing = false;
@@ -99,7 +98,7 @@ TEST_P(Discovery, ParticipantRemoval)
     PubSubReader<HelloWorldPubSubType> reader(TEST_TOPIC_NAME);
     PubSubWriter<HelloWorldPubSubType> writer(TEST_TOPIC_NAME);
 
-    reader.reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).init();
+    reader.reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).init();
 
     ASSERT_TRUE(reader.isInitialized());
 
@@ -195,11 +194,11 @@ void static_discovery_test(
     LocatorBuffer.port = static_cast<uint16_t>(MULTICAST_PORT_RANDOM_NUMBER);
     WriterMulticastLocators.push_back(LocatorBuffer);
 
-    writer.history_kind(eprosima::fastrtps::KEEP_ALL_HISTORY_QOS)
-            .durability_kind(eprosima::fastrtps::TRANSIENT_LOCAL_DURABILITY_QOS)
+    writer.history_kind(eprosima::fastdds::dds::KEEP_ALL_HISTORY_QOS)
+            .durability_kind(eprosima::fastdds::dds::TRANSIENT_LOCAL_DURABILITY_QOS)
             .property_policy(writer_property_policy);
     writer.static_discovery("file://PubSubWriter_static_disc.xml").reliability(
-        eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).
+        eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).
             unicastLocatorList(WriterUnicastLocators).multicastLocatorList(WriterMulticastLocators).
             setPublisherIDs(1,
             2).setManualTopicName(std::string("BlackBox_StaticDiscovery_") + TOPIC_RANDOM_NUMBER).init();
@@ -230,9 +229,9 @@ void static_discovery_test(
     ReaderMulticastLocators.push_back(LocatorBuffer);
 
 
-    reader.reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS)
-            .history_kind(eprosima::fastrtps::KEEP_ALL_HISTORY_QOS)
-            .durability_kind(eprosima::fastrtps::TRANSIENT_LOCAL_DURABILITY_QOS)
+    reader.reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS)
+            .history_kind(eprosima::fastdds::dds::KEEP_ALL_HISTORY_QOS)
+            .durability_kind(eprosima::fastdds::dds::TRANSIENT_LOCAL_DURABILITY_QOS)
             .property_policy(reader_property_policy);
     reader.static_discovery("file://PubSubReader_static_disc.xml").
             unicastLocatorList(ReaderUnicastLocators).multicastLocatorList(ReaderMulticastLocators).
@@ -325,9 +324,9 @@ TEST(Discovery, StaticDiscoveryFromString)
 
     PubSubWriter<HelloWorldPubSubType> writer(TEST_TOPIC_NAME);
 
-    writer.reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).
-            history_kind(eprosima::fastrtps::KEEP_ALL_HISTORY_QOS).
-            durability_kind(eprosima::fastrtps::TRANSIENT_LOCAL_DURABILITY_QOS);
+    writer.reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).
+            history_kind(eprosima::fastdds::dds::KEEP_ALL_HISTORY_QOS).
+            durability_kind(eprosima::fastdds::dds::TRANSIENT_LOCAL_DURABILITY_QOS);
     std::string writer_xml = "data://<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
             "<staticdiscovery>" \
             "<participant>" \
@@ -354,9 +353,9 @@ TEST(Discovery, StaticDiscoveryFromString)
     PubSubReader<HelloWorldPubSubType> reader(TEST_TOPIC_NAME);
 
 
-    reader.reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).
-            history_kind(eprosima::fastrtps::KEEP_ALL_HISTORY_QOS).
-            durability_kind(eprosima::fastrtps::TRANSIENT_LOCAL_DURABILITY_QOS);
+    reader.reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).
+            history_kind(eprosima::fastdds::dds::KEEP_ALL_HISTORY_QOS).
+            durability_kind(eprosima::fastdds::dds::TRANSIENT_LOCAL_DURABILITY_QOS);
     std::string reader_xml = "data://<?xml version=\"1.0\" encoding=\"utf-8\"?>" \
             "<staticdiscovery>" \
             "<participant>" \
@@ -434,20 +433,20 @@ TEST(Discovery, EndpointRediscovery)
     PubSubReader<HelloWorldPubSubType> reader(TEST_TOPIC_NAME);
     PubSubWriter<HelloWorldPubSubType> writer(TEST_TOPIC_NAME);
 
-    auto testTransport = std::make_shared<test_UDPv4TransportDescriptor>();
+    auto test_transport_reader = std::make_shared<test_UDPv4TransportDescriptor>();
     reader.disable_builtin_transport();
-    reader.add_user_transport_to_pparams(testTransport);
+    reader.add_user_transport_to_pparams(test_transport_reader);
 
-    reader.lease_duration({ 3, 0 }, { 1, 0 }).reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).init();
+    reader.lease_duration({ 3, 0 }, { 1, 0 }).reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).init();
 
     ASSERT_TRUE(reader.isInitialized());
 
     // To simulate lossy conditions, we are going to remove the default
     // bultin transport, and instead use a lossy shim layer variant.
-    testTransport = std::make_shared<test_UDPv4TransportDescriptor>();
+    auto test_transport_writer = std::make_shared<test_UDPv4TransportDescriptor>();
     // We drop 20% of all data frags
     writer.disable_builtin_transport();
-    writer.add_user_transport_to_pparams(testTransport);
+    writer.add_user_transport_to_pparams(test_transport_writer);
 
     writer.lease_duration({ 6, 0 }, { 2, 0 }).init();
 
@@ -458,11 +457,13 @@ TEST(Discovery, EndpointRediscovery)
     writer.wait_discovery();
     reader.wait_discovery();
 
-    test_UDPv4Transport::test_UDPv4Transport_ShutdownAllNetwork = true;
+    test_transport_writer->test_transport_options->test_UDPv4Transport_ShutdownAllNetwork = true;
+    test_transport_reader->test_transport_options->test_UDPv4Transport_ShutdownAllNetwork = true;
 
     writer.wait_reader_undiscovery();
 
-    test_UDPv4Transport::test_UDPv4Transport_ShutdownAllNetwork = false;
+    test_transport_writer->test_transport_options->test_UDPv4Transport_ShutdownAllNetwork = false;
+    test_transport_reader->test_transport_options->test_UDPv4Transport_ShutdownAllNetwork = false;
 
     writer.wait_discovery();
 }
@@ -473,14 +474,14 @@ TEST(Discovery, EndpointRediscovery_2)
     PubSubReader<HelloWorldPubSubType> reader(TEST_TOPIC_NAME);
     PubSubWriter<HelloWorldPubSubType> writer(TEST_TOPIC_NAME);
 
-    auto testTransport = std::make_shared<test_UDPv4TransportDescriptor>();
+    auto test_transport = std::make_shared<test_UDPv4TransportDescriptor>();
 
-    reader.lease_duration({ 120, 0 }, { 1, 0 }).reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).init();
+    reader.lease_duration({ 120, 0 }, { 1, 0 }).reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).init();
 
     ASSERT_TRUE(reader.isInitialized());
 
     writer.disable_builtin_transport();
-    writer.add_user_transport_to_pparams(testTransport);
+    writer.add_user_transport_to_pparams(test_transport);
 
     writer.lease_duration({ 2, 0 }, { 1, 0 }).init();
 
@@ -490,11 +491,11 @@ TEST(Discovery, EndpointRediscovery_2)
     writer.wait_discovery();
     reader.wait_discovery();
 
-    test_UDPv4Transport::test_UDPv4Transport_ShutdownAllNetwork = true;
+    test_transport->test_transport_options->test_UDPv4Transport_ShutdownAllNetwork = true;
 
     reader.wait_participant_undiscovery();
 
-    test_UDPv4Transport::test_UDPv4Transport_ShutdownAllNetwork = false;
+    test_transport->test_transport_options->test_UDPv4Transport_ShutdownAllNetwork = false;
 
     reader.wait_discovery();
 }
@@ -505,24 +506,24 @@ TEST(Discovery, EndpointRediscoveryWithTransientLocalData)
     PubSubReader<HelloWorldPubSubType> reader(TEST_TOPIC_NAME);
     PubSubWriter<HelloWorldPubSubType> writer(TEST_TOPIC_NAME);
 
-    auto testTransport = std::make_shared<test_UDPv4TransportDescriptor>();
+    auto test_transport = std::make_shared<test_UDPv4TransportDescriptor>();
 
     reader
             .lease_duration({ 120, 0 }, { 1, 0 })
-            .reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS)
-            .durability_kind(eprosima::fastrtps::TRANSIENT_LOCAL_DURABILITY_QOS)
+            .reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS)
+            .durability_kind(eprosima::fastdds::dds::TRANSIENT_LOCAL_DURABILITY_QOS)
             .init();
 
     ASSERT_TRUE(reader.isInitialized());
 
     writer.disable_builtin_transport();
-    writer.add_user_transport_to_pparams(testTransport);
+    writer.add_user_transport_to_pparams(test_transport);
 
     writer
             .lease_duration({ 2, 0 }, { 1, 0 })
             .history_depth(10)
-            .reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS)
-            .durability_kind(eprosima::fastrtps::TRANSIENT_LOCAL_DURABILITY_QOS)
+            .reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS)
+            .durability_kind(eprosima::fastdds::dds::TRANSIENT_LOCAL_DURABILITY_QOS)
             .init();
 
     ASSERT_TRUE(writer.isInitialized());
@@ -539,11 +540,11 @@ TEST(Discovery, EndpointRediscoveryWithTransientLocalData)
     reader.block_for_all();
     EXPECT_TRUE(writer.waitForAllAcked(std::chrono::seconds(1)));
 
-    test_UDPv4Transport::test_UDPv4Transport_ShutdownAllNetwork = true;
+    test_transport->test_transport_options->test_UDPv4Transport_ShutdownAllNetwork = true;
 
     reader.wait_participant_undiscovery();
 
-    test_UDPv4Transport::test_UDPv4Transport_ShutdownAllNetwork = false;
+    test_transport->test_transport_options->test_UDPv4Transport_ShutdownAllNetwork = false;
 
     reader.wait_discovery();
 
@@ -573,7 +574,7 @@ TEST(Discovery, ParticipantLivelinessAssertion)
 
     reader.disable_builtin_transport().add_user_transport_to_pparams(test_transport).
             lease_duration({ 0, 800000000 },
-            { 0, 500000000 }).reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).init();
+            { 0, 500000000 }).reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).init();
 
     ASSERT_TRUE(reader.isInitialized());
 
@@ -586,7 +587,7 @@ TEST(Discovery, ParticipantLivelinessAssertion)
     writer.wait_discovery();
     reader.wait_discovery();
 
-    test_UDPv4Transport::always_drop_participant_builtin_topic_data = true;
+    test_transport->test_transport_options->always_drop_participant_builtin_topic_data = true;
 
     std::thread thread([&writer]()
             {
@@ -601,7 +602,7 @@ TEST(Discovery, ParticipantLivelinessAssertion)
     EXPECT_FALSE(reader.wait_participant_undiscovery(std::chrono::seconds(1)));
     EXPECT_FALSE(writer.wait_participant_undiscovery(std::chrono::seconds(1)));
 
-    test_UDPv4Transport::always_drop_participant_builtin_topic_data = false;
+    test_transport->test_transport_options->always_drop_participant_builtin_topic_data = false;
 
     thread.join();
 }
@@ -658,7 +659,7 @@ TEST(Discovery, LocalInitialPeers)
 
     reader.metatraffic_unicast_locator_list(reader_default_unicast_locator).
             initial_peers(reader_initial_peers).
-            reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).init();
+            reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).init();
 
     ASSERT_TRUE(reader.isInitialized());
 
@@ -700,7 +701,7 @@ TEST_P(Discovery, PubSubAsReliableHelloworldPartitions)
 
     reader.history_depth(10).
             partition("PartitionTests").
-            reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).init();
+            reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).init();
 
     ASSERT_TRUE(reader.isInitialized());
 
@@ -807,16 +808,14 @@ TEST(Discovery, LocalInitialPeersDiferrentLocators)
                 return false;
             };
 
-    auto old_locator_filter = test_UDPv4Transport::locator_filter;
-    test_UDPv4Transport::locator_filter = locator_printer;
+    auto test_transport = std::make_shared<test_UDPv4TransportDescriptor>();
+    test_transport->test_transport_options->locator_filter = locator_printer;
 
     // Configure writer participant:
     // - Uses the test transport, to check destination behavior
     // - Listens for metatraffic on `writer_port`
     // - Has no automatic announcements
     {
-        auto test_transport = std::make_shared<test_UDPv4TransportDescriptor>();
-
         LocatorList_t writer_metatraffic_unicast;
         Locator_t locator;
         locator.port = static_cast<uint16_t>(writer_port);
@@ -827,7 +826,7 @@ TEST(Discovery, LocalInitialPeersDiferrentLocators)
                 metatraffic_unicast_locator_list(writer_metatraffic_unicast).
                 lease_duration(c_TimeInfinite, { 3600, 0 }).
                 initial_announcements(0, {}).
-                reliability(eprosima::fastrtps::BEST_EFFORT_RELIABILITY_QOS);
+                reliability(eprosima::fastdds::dds::BEST_EFFORT_RELIABILITY_QOS);
     }
 
     // Configure reader participants:
@@ -855,7 +854,7 @@ TEST(Discovery, LocalInitialPeersDiferrentLocators)
                 initial_announcements(1, {0, 100 * 1000 * 1000}).
                 metatraffic_unicast_locator_list(reader_metatraffic_unicast).
                 initial_peers(reader_initial_peers).
-                reliability(eprosima::fastrtps::BEST_EFFORT_RELIABILITY_QOS);
+                reliability(eprosima::fastdds::dds::BEST_EFFORT_RELIABILITY_QOS);
     }
 
     // Start writer and first reader, and wait for them to discover
@@ -878,9 +877,6 @@ TEST(Discovery, LocalInitialPeersDiferrentLocators)
     readers[1].init();
     ASSERT_TRUE(readers[1].isInitialized());
     readers[1].wait_discovery();
-
-    // Restore filter before deleting the participants
-    test_UDPv4Transport::locator_filter = old_locator_filter;
 }
 
 TEST_P(Discovery, PubSubAsReliableHelloworldParticipantDiscovery)
@@ -914,7 +910,7 @@ TEST_P(Discovery, PubSubAsReliableHelloworldParticipantDiscovery)
             });
 
     reader.history_depth(100).
-            reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).init();
+            reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).init();
 
     ASSERT_TRUE(reader.isInitialized());
 
@@ -954,7 +950,7 @@ TEST_P(Discovery, PubSubAsReliableHelloworldUserData)
             });
 
     reader.history_depth(100).
-            reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).init();
+            reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).init();
 
     ASSERT_TRUE(reader.isInitialized());
 
@@ -992,7 +988,7 @@ TEST_P(Discovery, PubSubAsReliableHelloworldEndpointUserData)
             });
 
     reader.history_depth(100).
-            reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).init();
+            reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).init();
 
     ASSERT_TRUE(reader.isInitialized());
 
@@ -1092,7 +1088,7 @@ TEST(Discovery, TwentyParticipantsMulticastLocalhostOnly)
                 part->disable_builtin_transport().add_user_transport_to_pparams(test_transport);
             };
 
-    test_UDPv4Transport::simulate_no_interfaces = true;
+    test_transport->test_transport_options->simulate_no_interfaces = true;
     discoverParticipantsTest(false, 20, 20, TEST_TOPIC_NAME, participant_config);
 }
 
@@ -1190,16 +1186,16 @@ TEST_P(Discovery, RepeatPubGuid)
     PubSubWriter<HelloWorldPubSubType> writer2(TEST_TOPIC_NAME);
 
     reader
-            .history_kind(eprosima::fastrtps::KEEP_LAST_HISTORY_QOS)
+            .history_kind(eprosima::fastdds::dds::KEEP_LAST_HISTORY_QOS)
             .history_depth(10)
-            .reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS)
+            .reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS)
             .participant_id(2)
             .init();
 
     writer
-            .history_kind(eprosima::fastrtps::KEEP_LAST_HISTORY_QOS)
+            .history_kind(eprosima::fastdds::dds::KEEP_LAST_HISTORY_QOS)
             .history_depth(10)
-            .reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS)
+            .reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS)
             .participant_id(1)
             .init();
 
@@ -1225,9 +1221,9 @@ TEST_P(Discovery, RepeatPubGuid)
     reader.wait_participant_undiscovery();
 
     writer2
-            .history_kind(eprosima::fastrtps::KEEP_LAST_HISTORY_QOS)
+            .history_kind(eprosima::fastdds::dds::KEEP_LAST_HISTORY_QOS)
             .history_depth(10)
-            .reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS)
+            .reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS)
             .participant_id(1)
             .init();
 
@@ -1309,9 +1305,9 @@ TEST_P(Discovery, AsymmeticIgnoreParticipantFlags)
     // When the announcements of this participant arrive to p2, a single DATA(p) should be sent back.
     // No other traffic is expected, since it will take place through intraprocess.
     PubSubReader<HelloWorldPubSubType> p1(TEST_TOPIC_NAME);
-    p1.ignore_participant_flags(static_cast<eprosima::fastrtps::rtps::ParticipantFilteringFlags_t>(
-                eprosima::fastrtps::rtps::ParticipantFilteringFlags_t::FILTER_DIFFERENT_HOST |
-                eprosima::fastrtps::rtps::ParticipantFilteringFlags_t::FILTER_DIFFERENT_PROCESS));
+    p1.ignore_participant_flags(static_cast<eprosima::fastdds::rtps::ParticipantFilteringFlags>(
+                eprosima::fastdds::rtps::ParticipantFilteringFlags::FILTER_DIFFERENT_HOST |
+                eprosima::fastdds::rtps::ParticipantFilteringFlags::FILTER_DIFFERENT_PROCESS));
     p1.init();
     EXPECT_TRUE(p1.isInitialized());
 
@@ -1969,13 +1965,16 @@ TEST(Discovery, RemoteBuiltinEndpointHonoring)
 
     reader_test_transport->drop_heartbeat_messages_filter_ = [&num_wlp_reader_heartbeat](CDRMessage_t& msg)
             {
-                auto old_pos = msg.pos;
-                msg.pos += 4;
-                eprosima::fastrtps::rtps::EntityId_t writer_entity_id;
-                eprosima::fastrtps::rtps::CDRMessage::readEntityId(&msg, &writer_entity_id);
-                msg.pos = old_pos;
+                // Go back to submsgkind
+                auto submsgkind_pos = msg.pos - 4;
+                auto hb_submsg = eprosima::fastdds::helpers::cdr_parse_heartbeat_submsg(
+                    (char*)&msg.buffer[submsgkind_pos],
+                    msg.length - submsgkind_pos);
 
-                if (eprosima::fastrtps::rtps::c_EntityId_WriterLiveliness == writer_entity_id)
+                assert(hb_submsg.submsgHeader().submessageId() == HEARTBEAT);
+
+                if (eprosima::fastdds::rtps::c_EntityId_WriterLiveliness ==
+                        *reinterpret_cast<EntityId_t*>(&hb_submsg.writerId()))
                 {
                     num_wlp_reader_heartbeat++;
                 }
@@ -1984,13 +1983,16 @@ TEST(Discovery, RemoteBuiltinEndpointHonoring)
 
     reader_test_transport->drop_ack_nack_messages_filter_ = [&num_wlp_reader_acknack](CDRMessage_t& msg)
             {
-                auto old_pos = msg.pos;
-                msg.pos += 4;
-                eprosima::fastrtps::rtps::EntityId_t writer_entity_id;
-                eprosima::fastrtps::rtps::CDRMessage::readEntityId(&msg, &writer_entity_id);
-                msg.pos = old_pos;
+                // Go back to submsgkind
+                auto submsgkind_pos = msg.pos - 4;
+                auto acknack_submsg = eprosima::fastdds::helpers::cdr_parse_acknack_submsg(
+                    (char*)&msg.buffer[submsgkind_pos],
+                    msg.length - submsgkind_pos);
 
-                if (eprosima::fastrtps::rtps::c_EntityId_WriterLiveliness == writer_entity_id)
+                assert(acknack_submsg.submsgHeader().submessageId() == ACKNACK);
+
+                if (eprosima::fastdds::rtps::c_EntityId_WriterLiveliness ==
+                        *reinterpret_cast<EntityId_t*>(&acknack_submsg.writerId()))
                 {
                     num_wlp_reader_acknack++;
                 }
@@ -2002,15 +2004,18 @@ TEST(Discovery, RemoteBuiltinEndpointHonoring)
     uint32_t num_wlp_writer_heartbeat = 0;
     uint32_t num_wlp_writer_acknack = 0;
 
-    writer_test_transport->drop_heartbeat_messages_filter_ = [&num_wlp_writer_heartbeat](CDRMessage_t& msg)
+    writer_test_transport->drop_heartbeat_messages_filter_ = [&](CDRMessage_t& msg)
             {
-                auto old_pos = msg.pos;
-                msg.pos += 4;
-                eprosima::fastrtps::rtps::EntityId_t writer_entity_id;
-                eprosima::fastrtps::rtps::CDRMessage::readEntityId(&msg, &writer_entity_id);
-                msg.pos = old_pos;
+                // Go back to submsgkind
+                auto submsgkind_pos = msg.pos - 4;
+                auto hb_submsg = eprosima::fastdds::helpers::cdr_parse_heartbeat_submsg(
+                    (char*)&msg.buffer[submsgkind_pos],
+                    msg.length - submsgkind_pos);
 
-                if (eprosima::fastrtps::rtps::c_EntityId_WriterLiveliness == writer_entity_id)
+                assert(hb_submsg.submsgHeader().submessageId() == HEARTBEAT);
+
+                if (eprosima::fastdds::rtps::c_EntityId_WriterLiveliness ==
+                        *reinterpret_cast<EntityId_t*>(&hb_submsg.writerId()))
                 {
                     num_wlp_writer_heartbeat++;
                 }
@@ -2019,13 +2024,16 @@ TEST(Discovery, RemoteBuiltinEndpointHonoring)
 
     writer_test_transport->drop_ack_nack_messages_filter_ = [&num_wlp_writer_acknack](CDRMessage_t& msg)
             {
-                auto old_pos = msg.pos;
-                msg.pos += 4;
-                eprosima::fastrtps::rtps::EntityId_t writer_entity_id;
-                eprosima::fastrtps::rtps::CDRMessage::readEntityId(&msg, &writer_entity_id);
-                msg.pos = old_pos;
+                // Go back to submsgkind
+                auto submsgkind_pos = msg.pos - 4;
+                auto acknack_submsg = eprosima::fastdds::helpers::cdr_parse_acknack_submsg(
+                    (char*)&msg.buffer[submsgkind_pos],
+                    msg.length - submsgkind_pos);
 
-                if (eprosima::fastrtps::rtps::c_EntityId_WriterLiveliness == writer_entity_id)
+                assert(acknack_submsg.submsgHeader().submessageId() == ACKNACK);
+
+                if (eprosima::fastdds::rtps::c_EntityId_WriterLiveliness ==
+                        *reinterpret_cast<EntityId_t*>(&acknack_submsg.writerId()))
                 {
                     num_wlp_writer_acknack++;
                 }
@@ -2146,7 +2154,7 @@ TEST(Discovery, MultipleXMLProfileLoad)
 TEST(Discovery, discovery_cyclone_participant_with_custom_pid)
 {
     using namespace eprosima::fastdds::dds;
-    using namespace eprosima::fastrtps::rtps;
+    using namespace eprosima::fastdds::rtps;
 
     /* Custom participant listener to count number of discovered participants */
     class DiscoveryListener : public DomainParticipantListener
@@ -2155,8 +2163,10 @@ TEST(Discovery, discovery_cyclone_participant_with_custom_pid)
 
         void on_participant_discovery(
                 DomainParticipant*,
-                ParticipantDiscoveryInfo&& info) override
+                ParticipantDiscoveryInfo&& info,
+                bool& should_be_ignored) override
         {
+            should_be_ignored = false;
             if (ParticipantDiscoveryInfo::DISCOVERED_PARTICIPANT == info.status)
             {
                 discovered_participants_++;
@@ -2193,7 +2203,8 @@ TEST(Discovery, discovery_cyclone_participant_with_custom_pid)
 
     /* Create participant with custom transport and listener */
     DiscoveryListener listener;
-    uint32_t domain_id = static_cast<uint32_t>(GET_PID()) % 230;
+    /* We need to match the domain id in the datagram */
+    uint32_t domain_id = 0;
     DomainParticipantFactory* factory = DomainParticipantFactory::get_instance();
     DomainParticipant* participant = factory->create_participant(domain_id, participant_qos, &listener);
     ASSERT_NE(nullptr, participant);

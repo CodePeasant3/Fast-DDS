@@ -34,7 +34,7 @@
 #include <fastdds/dds/subscriber/DataReaderListener.hpp>
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
 #include <fastdds/dds/subscriber/SampleInfo.hpp>
-#include <fastrtps/transport/TransportDescriptorInterface.h>
+#include <fastdds/rtps/transport/TransportDescriptorInterface.hpp>
 
 #include <string>
 #include <list>
@@ -67,13 +67,13 @@ class PubSubWriterReader
 #if HAVE_SECURITY
         void onParticipantAuthentication(
                 eprosima::fastdds::dds::DomainParticipant*,
-                eprosima::fastrtps::rtps::ParticipantAuthenticationInfo&& info) override
+                eprosima::fastdds::rtps::ParticipantAuthenticationInfo&& info) override
         {
-            if (info.status == eprosima::fastrtps::rtps::ParticipantAuthenticationInfo::AUTHORIZED_PARTICIPANT)
+            if (info.status == eprosima::fastdds::rtps::ParticipantAuthenticationInfo::AUTHORIZED_PARTICIPANT)
             {
                 wreader_.authorized();
             }
-            else if (info.status == eprosima::fastrtps::rtps::ParticipantAuthenticationInfo::UNAUTHORIZED_PARTICIPANT)
+            else if (info.status == eprosima::fastdds::rtps::ParticipantAuthenticationInfo::UNAUTHORIZED_PARTICIPANT)
             {
                 wreader_.unauthorized();
             }
@@ -82,21 +82,23 @@ class PubSubWriterReader
 #endif // if HAVE_SECURITY
         void on_participant_discovery(
                 eprosima::fastdds::dds::DomainParticipant* participant,
-                eprosima::fastrtps::rtps::ParticipantDiscoveryInfo&& info) override
+                eprosima::fastdds::rtps::ParticipantDiscoveryInfo&& info,
+                bool& should_be_ignored) override
         {
-            (void)participant;
+            static_cast<void>(should_be_ignored);
+            static_cast<void>(participant);
 
             switch (info.status)
             {
-                case eprosima::fastrtps::rtps::ParticipantDiscoveryInfo::DISCOVERED_PARTICIPANT:
+                case eprosima::fastdds::rtps::ParticipantDiscoveryInfo::DISCOVERED_PARTICIPANT:
                     info_add(discovered_participants_, info.info.m_guid);
                     break;
 
-                case eprosima::fastrtps::rtps::ParticipantDiscoveryInfo::REMOVED_PARTICIPANT:
+                case eprosima::fastdds::rtps::ParticipantDiscoveryInfo::REMOVED_PARTICIPANT:
                     info_remove(discovered_participants_, info.info.m_guid);
                     break;
 
-                case eprosima::fastrtps::rtps::ParticipantDiscoveryInfo::DROPPED_PARTICIPANT:
+                case eprosima::fastdds::rtps::ParticipantDiscoveryInfo::DROPPED_PARTICIPANT:
                     std::cout << "Participant " << info.info.m_guid << " has been dropped";
                     info_remove(discovered_participants_, info.info.m_guid);
                     break;
@@ -106,19 +108,20 @@ class PubSubWriterReader
             }
         }
 
-        void on_subscriber_discovery(
+        void on_data_reader_discovery(
                 eprosima::fastdds::dds::DomainParticipant* participant,
-                eprosima::fastrtps::rtps::ReaderDiscoveryInfo&& info) override
+                eprosima::fastdds::rtps::ReaderDiscoveryInfo&& info,
+                bool& /*should_be_ignored*/) override
         {
             (void)participant;
 
             switch (info.status)
             {
-                case eprosima::fastrtps::rtps::ReaderDiscoveryInfo::DISCOVERED_READER:
+                case eprosima::fastdds::rtps::ReaderDiscoveryInfo::DISCOVERED_READER:
                     info_add(discovered_subscribers_, info.info.guid());
                     break;
 
-                case eprosima::fastrtps::rtps::ReaderDiscoveryInfo::REMOVED_READER:
+                case eprosima::fastdds::rtps::ReaderDiscoveryInfo::REMOVED_READER:
                     info_remove(discovered_subscribers_, info.info.guid());
                     break;
 
@@ -127,19 +130,20 @@ class PubSubWriterReader
             }
         }
 
-        void on_publisher_discovery(
+        void on_data_writer_discovery(
                 eprosima::fastdds::dds::DomainParticipant* participant,
-                eprosima::fastrtps::rtps::WriterDiscoveryInfo&& info) override
+                eprosima::fastdds::rtps::WriterDiscoveryInfo&& info,
+                bool& /*should_be_ignored*/) override
         {
             (void)participant;
 
             switch (info.status)
             {
-                case eprosima::fastrtps::rtps::WriterDiscoveryInfo::DISCOVERED_WRITER:
+                case eprosima::fastdds::rtps::WriterDiscoveryInfo::DISCOVERED_WRITER:
                     info_add(discovered_publishers_, info.info.guid());
                     break;
 
-                case eprosima::fastrtps::rtps::WriterDiscoveryInfo::REMOVED_WRITER:
+                case eprosima::fastdds::rtps::WriterDiscoveryInfo::REMOVED_WRITER:
                     info_remove(discovered_publishers_, info.info.guid());
                     break;
 
@@ -169,29 +173,29 @@ class PubSubWriterReader
     private:
 
         using eprosima::fastdds::dds::DomainParticipantListener::on_participant_discovery;
-        using eprosima::fastdds::dds::DomainParticipantListener::on_publisher_discovery;
-        using eprosima::fastdds::dds::DomainParticipantListener::on_subscriber_discovery;
+        using eprosima::fastdds::dds::DomainParticipantListener::on_data_writer_discovery;
+        using eprosima::fastdds::dds::DomainParticipantListener::on_data_reader_discovery;
 
         //! Mutex guarding all info collections
         mutable std::mutex info_mutex_;
         //! The discovered participants excluding the participant this listener is listening to
-        std::set<eprosima::fastrtps::rtps::GUID_t> discovered_participants_;
+        std::set<eprosima::fastdds::rtps::GUID_t> discovered_participants_;
         //! Number of subscribers discovered
-        std::set<eprosima::fastrtps::rtps::GUID_t> discovered_subscribers_;
+        std::set<eprosima::fastdds::rtps::GUID_t> discovered_subscribers_;
         //! Number of publishers discovered
-        std::set<eprosima::fastrtps::rtps::GUID_t> discovered_publishers_;
+        std::set<eprosima::fastdds::rtps::GUID_t> discovered_publishers_;
 
         void info_add(
-                std::set<eprosima::fastrtps::rtps::GUID_t>& collection,
-                const eprosima::fastrtps::rtps::GUID_t& item)
+                std::set<eprosima::fastdds::rtps::GUID_t>& collection,
+                const eprosima::fastdds::rtps::GUID_t& item)
         {
             std::lock_guard<std::mutex> guard(info_mutex_);
             collection.insert(item);
         }
 
         void info_remove(
-                std::set<eprosima::fastrtps::rtps::GUID_t>& collection,
-                const eprosima::fastrtps::rtps::GUID_t& item)
+                std::set<eprosima::fastdds::rtps::GUID_t>& collection,
+                const eprosima::fastdds::rtps::GUID_t& item)
         {
             std::lock_guard<std::mutex> guard(info_mutex_);
             collection.erase(item);
@@ -347,9 +351,9 @@ public:
 
         // By default, memory mode is PREALLOCATED_WITH_REALLOC_MEMORY_MODE
         datawriter_qos_.endpoint().history_memory_policy =
-                eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+                eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
         datareader_qos_.endpoint().history_memory_policy =
-                eprosima::fastrtps::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
+                eprosima::fastdds::rtps::PREALLOCATED_WITH_REALLOC_MEMORY_MODE;
 
         // By default, heartbeat period and nack response delay are 100 milliseconds.
         datawriter_qos_.reliable_writer_qos().times.heartbeatPeriod.seconds = 0;
@@ -363,8 +367,8 @@ public:
         datawriter_qos_.reliability().max_blocking_time.nanosec = 0;
 
         // By default, heartbeat period delay is 100 milliseconds.
-        datareader_qos_.reliable_reader_qos().times.heartbeatResponseDelay.seconds = 0;
-        datareader_qos_.reliable_reader_qos().times.heartbeatResponseDelay.nanosec = 100000000;
+        datareader_qos_.reliable_reader_qos().times.heartbeat_response_delay.seconds = 0;
+        datareader_qos_.reliable_reader_qos().times.heartbeat_response_delay.nanosec = 100000000;
     }
 
     ~PubSubWriterReader()
@@ -393,7 +397,7 @@ public:
         type_.reset(new type_support());
 
         // Register type
-        ASSERT_EQ(participant_->register_type(type_), ReturnCode_t::RETCODE_OK);
+        ASSERT_EQ(participant_->register_type(type_), eprosima::fastdds::dds::RETCODE_OK);
 
         //Create publisher
         publisher_ = participant_->create_publisher(eprosima::fastdds::dds::PUBLISHER_QOS_DEFAULT);
@@ -426,7 +430,7 @@ public:
     bool create_additional_topics(
             size_t num_topics,
             const char* suffix,
-            const eprosima::fastrtps::rtps::PropertySeq& writer_properties = eprosima::fastrtps::rtps::PropertySeq())
+            const eprosima::fastdds::rtps::PropertySeq& writer_properties = eprosima::fastdds::rtps::PropertySeq())
     {
         bool ret_val = initialized_;
         if (ret_val)
@@ -529,7 +533,7 @@ public:
                 topic_ = nullptr;
             }
             ASSERT_EQ(DomainParticipantFactory::get_instance()->delete_participant(
-                        participant_), ReturnCode_t::RETCODE_OK);
+                        participant_), eprosima::fastdds::dds::RETCODE_OK);
             participant_ = nullptr;
         }
 
@@ -713,42 +717,42 @@ public:
 #endif // if HAVE_SECURITY
 
     PubSubWriterReader& pub_durability_kind(
-            const eprosima::fastrtps::DurabilityQosPolicyKind kind)
+            const eprosima::fastdds::dds::DurabilityQosPolicyKind kind)
     {
         datawriter_qos_.durability().kind = kind;
         return *this;
     }
 
     PubSubWriterReader& sub_durability_kind(
-            const eprosima::fastrtps::DurabilityQosPolicyKind kind)
+            const eprosima::fastdds::dds::DurabilityQosPolicyKind kind)
     {
         datareader_qos_.durability().kind = kind;
         return *this;
     }
 
     PubSubWriterReader& pub_reliability(
-            const eprosima::fastrtps::ReliabilityQosPolicyKind kind)
+            const eprosima::fastdds::dds::ReliabilityQosPolicyKind kind)
     {
         datawriter_qos_.reliability().kind = kind;
         return *this;
     }
 
     PubSubWriterReader& sub_reliability(
-            const eprosima::fastrtps::ReliabilityQosPolicyKind kind)
+            const eprosima::fastdds::dds::ReliabilityQosPolicyKind kind)
     {
         datareader_qos_.reliability().kind = kind;
         return *this;
     }
 
     PubSubWriterReader& pub_history_kind(
-            const eprosima::fastrtps::HistoryQosPolicyKind kind)
+            const eprosima::fastdds::dds::HistoryQosPolicyKind kind)
     {
         datawriter_qos_.history().kind = kind;
         return *this;
     }
 
     PubSubWriterReader& sub_history_kind(
-            const eprosima::fastrtps::HistoryQosPolicyKind kind)
+            const eprosima::fastdds::dds::HistoryQosPolicyKind kind)
     {
         datareader_qos_.history().kind = kind;
         return *this;
@@ -775,70 +779,70 @@ public:
     }
 
     PubSubWriterReader& add_user_transport_to_pparams(
-            std::shared_ptr<eprosima::fastrtps::rtps::TransportDescriptorInterface> userTransportDescriptor)
+            std::shared_ptr<eprosima::fastdds::rtps::TransportDescriptorInterface> userTransportDescriptor)
     {
         participant_qos_.transport().user_transports.push_back(userTransportDescriptor);
         return *this;
     }
 
     PubSubWriterReader& property_policy(
-            const eprosima::fastrtps::rtps::PropertyPolicy property_policy)
+            const eprosima::fastdds::rtps::PropertyPolicy property_policy)
     {
         participant_qos_.properties() = property_policy;
         return *this;
     }
 
     PubSubWriterReader& pub_property_policy(
-            const eprosima::fastrtps::rtps::PropertyPolicy property_policy)
+            const eprosima::fastdds::rtps::PropertyPolicy property_policy)
     {
         datawriter_qos_.properties() = property_policy;
         return *this;
     }
 
     PubSubWriterReader& sub_property_policy(
-            const eprosima::fastrtps::rtps::PropertyPolicy property_policy)
+            const eprosima::fastdds::rtps::PropertyPolicy property_policy)
     {
         datareader_qos_.properties() = property_policy;
         return *this;
     }
 
     PubSubWriterReader& pub_liveliness_kind(
-            const eprosima::fastrtps::LivelinessQosPolicyKind kind)
+            const eprosima::fastdds::dds::LivelinessQosPolicyKind kind)
     {
         datawriter_qos_.liveliness().kind = kind;
         return *this;
     }
 
     PubSubWriterReader& sub_liveliness_kind(
-            const eprosima::fastrtps::LivelinessQosPolicyKind kind)
+            const eprosima::fastdds::dds::LivelinessQosPolicyKind kind)
     {
         datareader_qos_.liveliness().kind = kind;
         return *this;
     }
 
     PubSubWriterReader& pub_liveliness_announcement_period(
-            const eprosima::fastrtps::Duration_t announcement_period)
+            const eprosima::fastdds::Duration_t announcement_period)
     {
         datawriter_qos_.liveliness().announcement_period = announcement_period;
         return *this;
     }
 
     PubSubWriterReader& sub_liveliness_announcement_period(
-            const eprosima::fastrtps::Duration_t announcement_period)
+            const eprosima::fastdds::Duration_t announcement_period)
     {
         datareader_qos_.liveliness().announcement_period = announcement_period;
         return *this;
     }
 
     PubSubWriterReader& pub_liveliness_lease_duration(
-            const eprosima::fastrtps::Duration_t lease_duration)
+            const eprosima::fastdds::Duration_t lease_duration)
     {
         datawriter_qos_.liveliness().lease_duration = lease_duration;
         return *this;
     }
 
     PubSubWriterReader& sub_liveliness_lease_duration(
-            const eprosima::fastrtps::Duration_t lease_duration)
+            const eprosima::fastdds::Duration_t lease_duration)
     {
         datareader_qos_.liveliness().lease_duration = lease_duration;
         return *this;
@@ -876,25 +880,24 @@ public:
         return matched_readers_.size();
     }
 
-    PubSubWriterReader& add_throughput_controller_descriptor_to_pparams(
+    PubSubWriterReader& add_flow_controller_descriptor_to_pparams(
             eprosima::fastdds::rtps::FlowControllerSchedulerPolicy scheduler_policy,
             uint32_t bytesPerPeriod,
             uint32_t periodInMs)
     {
-        static const std::string flow_controller_name("MyFlowController");
         auto new_flow_controller = std::make_shared<eprosima::fastdds::rtps::FlowControllerDescriptor>();
-        new_flow_controller->name = flow_controller_name.c_str();
+        new_flow_controller->name = "MyFlowController";
         new_flow_controller->scheduler = scheduler_policy;
         new_flow_controller->max_bytes_per_period = bytesPerPeriod;
         new_flow_controller->period_ms = static_cast<uint64_t>(periodInMs);
         participant_qos_.flow_controllers().push_back(new_flow_controller);
-        datawriter_qos_.publish_mode().flow_controller_name = flow_controller_name.c_str();
+        datawriter_qos_.publish_mode().flow_controller_name = new_flow_controller->name;
 
         return *this;
     }
 
     PubSubWriterReader& asynchronously(
-            const eprosima::fastrtps::PublishModeQosPolicyKind kind)
+            const eprosima::fastdds::dds::PublishModeQosPolicyKind kind)
     {
         datawriter_qos_.publish_mode().kind = kind;
         return *this;
@@ -910,7 +913,7 @@ private:
         type data;
         eprosima::fastdds::dds::SampleInfo info;
 
-        if ((ReturnCode_t::RETCODE_OK == datareader->take_next_sample((void*)&data, &info)))
+        if ((eprosima::fastdds::dds::RETCODE_OK == datareader->take_next_sample((void*)&data, &info)))
         {
             returnedValue = true;
 
@@ -1015,11 +1018,11 @@ private:
     std::condition_variable cv_;
     std::mutex mutexDiscovery_;
     std::condition_variable cvDiscovery_;
-    std::set<eprosima::fastrtps::rtps::InstanceHandle_t> matched_writers_;
-    std::set<eprosima::fastrtps::rtps::InstanceHandle_t> matched_readers_;
+    std::set<eprosima::fastdds::rtps::InstanceHandle_t> matched_writers_;
+    std::set<eprosima::fastdds::rtps::InstanceHandle_t> matched_readers_;
     std::atomic<bool> receiving_;
     eprosima::fastdds::dds::TypeSupport type_;
-    eprosima::fastrtps::rtps::SequenceNumber_t last_seq;
+    eprosima::fastdds::rtps::SequenceNumber_t last_seq;
     size_t current_received_count_;
     size_t number_samples_expected_;
 #if HAVE_SECURITY

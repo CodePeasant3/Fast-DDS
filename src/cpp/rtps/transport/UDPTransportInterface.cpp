@@ -14,15 +14,17 @@
 
 #include <rtps/transport/UDPTransportInterface.h>
 
-#include <utility>
-#include <cstring>
 #include <algorithm>
 #include <chrono>
+#include <cstring>
+#include <limits>
+#include <utility>
 
-#include <fastdds/rtps/transport/TransportInterface.h>
-#include <fastdds/rtps/messages/CDRMessage.h>
 #include <fastdds/dds/log/Log.hpp>
-#include <fastrtps/utils/IPLocator.h>
+#include <fastdds/rtps/transport/TransportInterface.hpp>
+#include <fastdds/utils/IPLocator.hpp>
+#include <rtps/messages/CDRMessage.hpp>
+#include <rtps/transport/asio_helpers.hpp>
 #include <rtps/transport/UDPSenderResource.hpp>
 #include <statistics/rtps/messages/RTPSStatisticsMessages.hpp>
 
@@ -33,13 +35,6 @@ namespace eprosima {
 namespace fastdds {
 namespace rtps {
 
-using IPLocator = fastrtps::rtps::IPLocator;
-using LocatorSelectorEntry = fastrtps::rtps::LocatorSelectorEntry;
-using LocatorSelector = fastrtps::rtps::LocatorSelector;
-using IPFinder = fastrtps::rtps::IPFinder;
-using octet = fastrtps::rtps::octet;
-using PortParameters = fastrtps::rtps::PortParameters;
-using SenderResource = fastrtps::rtps::SenderResource;
 using Log = fastdds::dds::Log;
 
 UDPTransportDescriptor::UDPTransportDescriptor()
@@ -118,64 +113,78 @@ bool UDPTransportInterface::DoInputLocatorsMatch(
 }
 
 bool UDPTransportInterface::init(
-        const fastrtps::rtps::PropertyPolicy*,
+        const fastdds::rtps::PropertyPolicy*,
         const uint32_t& max_msg_size_no_frag)
 {
-    if (configuration()->sendBufferSize == 0 || configuration()->receiveBufferSize == 0)
-    {
-        // Check system buffer sizes.
-        ip::udp::socket socket(io_service_);
-        socket.open(generate_protocol());
-
-        if (configuration()->sendBufferSize == 0)
-        {
-            socket_base::send_buffer_size option;
-            socket.get_option(option);
-            set_send_buffer_size(static_cast<uint32_t>(option.value()));
-
-            if (configuration()->sendBufferSize < s_minimumSocketBuffer)
-            {
-                set_send_buffer_size(s_minimumSocketBuffer);
-                mSendBufferSize = s_minimumSocketBuffer;
-            }
-        }
-
-        if (configuration()->receiveBufferSize == 0)
-        {
-            socket_base::receive_buffer_size option;
-            socket.get_option(option);
-            set_receive_buffer_size(static_cast<uint32_t>(option.value()));
-
-            if (configuration()->receiveBufferSize < s_minimumSocketBuffer)
-            {
-                set_receive_buffer_size(s_minimumSocketBuffer);
-                mReceiveBufferSize = s_minimumSocketBuffer;
-            }
-        }
-    }
-
     uint32_t maximumMessageSize = max_msg_size_no_frag == 0 ? s_maximumMessageSize : max_msg_size_no_frag;
+    uint32_t cfg_max_msg_size = configuration()->maxMessageSize;
+    uint32_t cfg_send_size = configuration()->sendBufferSize;
+    uint32_t cfg_recv_size = configuration()->receiveBufferSize;
+    uint32_t max_int_value = static_cast<uint32_t>(std::numeric_limits<int32_t>::max());
 
-    if (configuration()->maxMessageSize > maximumMessageSize)
+    if (cfg_max_msg_size > maximumMessageSize)
     {
-        EPROSIMA_LOG_ERROR(RTPS_MSG_OUT,
-                "maxMessageSize cannot be greater than " << std::to_string(maximumMessageSize));
+        EPROSIMA_LOG_ERROR(TRANSPORT_UDP, "maxMessageSize cannot be greater than " << maximumMessageSize);
         return false;
     }
 
-    if (configuration()->maxMessageSize > configuration()->sendBufferSize)
+    if (cfg_send_size > max_int_value)
     {
-        EPROSIMA_LOG_ERROR(RTPS_MSG_OUT, "maxMessageSize cannot be greater than send_buffer_size");
+        EPROSIMA_LOG_ERROR(TRANSPORT_UDP, "sendBufferSize cannot be greater than " << max_int_value);
         return false;
     }
 
-    if (configuration()->maxMessageSize > configuration()->receiveBufferSize)
+    if (cfg_recv_size > max_int_value)
     {
-        EPROSIMA_LOG_ERROR(RTPS_MSG_OUT, "maxMessageSize cannot be greater than receive_buffer_size");
+        EPROSIMA_LOG_ERROR(TRANSPORT_UDP, "receiveBufferSize cannot be greater than " << max_int_value);
         return false;
     }
 
-    return true;
+    if ((cfg_send_size > 0) && (cfg_max_msg_size > cfg_send_size))
+    {
+        EPROSIMA_LOG_ERROR(TRANSPORT_UDP, "maxMessageSize cannot be greater than sendBufferSize");
+        return false;
+    }
+
+    if ((cfg_recv_size > 0) && (cfg_max_msg_size > cfg_recv_size))
+    {
+        EPROSIMA_LOG_ERROR(TRANSPORT_UDP, "maxMessageSize cannot be greater than receiveBufferSize");
+        return false;
+    }
+
+    asio::error_code ec;
+    ip::udp::socket socket(io_service_);
+    socket.open(generate_protocol(), ec);
+    if (!!ec)
+    {
+        EPROSIMA_LOG_ERROR(TRANSPORT_UDP, "Error creating socket: " << ec.message());
+        return false;
+    }
+
+    bool ret = asio_helpers::configure_buffer_sizes(socket, *configuration(), mSendBufferSize, mReceiveBufferSize);
+    if (ret)
+    {
+        if (cfg_send_size > 0 && mSendBufferSize != cfg_send_size)
+        {
+            EPROSIMA_LOG_WARNING(TRANSPORT_UDP, "UDPTransport sendBufferSize could not be set to the desired value. "
+                    << "Using " << mSendBufferSize << " instead of " << cfg_send_size);
+        }
+
+        if (cfg_recv_size > 0 && mReceiveBufferSize != cfg_recv_size)
+        {
+            EPROSIMA_LOG_WARNING(TRANSPORT_UDP, "UDPTransport receiveBufferSize could not be set to the desired value. "
+                    << "Using " << mReceiveBufferSize << " instead of " << cfg_recv_size);
+        }
+
+        set_send_buffer_size(mSendBufferSize);
+        set_receive_buffer_size(mReceiveBufferSize);
+    }
+    else
+    {
+        EPROSIMA_LOG_ERROR(TRANSPORT_UDP, "Couldn't set buffer sizes to minimum value: " << cfg_max_msg_size);
+    }
+
+    return ret;
 }
 
 bool UDPTransportInterface::IsInputChannelOpen(
@@ -213,9 +222,8 @@ bool UDPTransportInterface::OpenAndBindInputSockets(
     catch (asio::system_error const& e)
     {
         (void)e;
-        EPROSIMA_LOG_INFO(RTPS_MSG_OUT, "UDPTransport Error binding at port: (" << IPLocator::getPhysicalPort(
-                    locator) << ")"
-                                                                                << " with msg: " << e.what());
+        EPROSIMA_LOG_INFO(TRANSPORT_UDP, "UDPTransport Error binding at port: ("
+                << IPLocator::getPhysicalPort(locator) << ")" << " with msg: " << e.what());
         mInputSockets.erase(IPLocator::getPhysicalPort(locator));
         return false;
     }
@@ -245,7 +253,18 @@ eProsimaUDPSocket UDPTransportInterface::OpenAndBindUnicastOutputSocket(
     getSocketPtr(socket)->open(generate_protocol());
     if (mSendBufferSize != 0)
     {
-        getSocketPtr(socket)->set_option(socket_base::send_buffer_size(static_cast<int32_t>(mSendBufferSize)));
+        uint32_t configured_value = 0;
+        if (!asio_helpers::try_setting_buffer_size<socket_base::send_buffer_size>(
+                    socket, mSendBufferSize, configuration()->maxMessageSize, configured_value))
+        {
+            EPROSIMA_LOG_ERROR(TRANSPORT_UDP,
+                    "Couldn't set send buffer size to minimum value: " << configuration()->maxMessageSize);
+        }
+        else if (configured_value != mSendBufferSize)
+        {
+            EPROSIMA_LOG_WARNING(TRANSPORT_UDP, "UDPTransport sendBufferSize could not be set to the desired value. "
+                    << "Using " << configured_value << " instead of " << mSendBufferSize);
+        }
     }
     getSocketPtr(socket)->set_option(ip::multicast::hops(configuration()->TTL));
     getSocketPtr(socket)->bind(endpoint);
@@ -332,7 +351,7 @@ bool UDPTransportInterface::OpenOutputChannel(
                 catch (asio::system_error const& e)
                 {
                     (void)e;
-                    EPROSIMA_LOG_WARNING(RTPS_MSG_OUT, "UDPTransport Error binding interface "
+                    EPROSIMA_LOG_WARNING(TRANSPORT_UDP, "UDPTransport Error binding interface "
                             << localhost_name() << " (skipping) with msg: " << e.what());
                 }
             }
@@ -356,7 +375,7 @@ bool UDPTransportInterface::OpenOutputChannel(
                     catch (asio::system_error const& e)
                     {
                         (void)e;
-                        EPROSIMA_LOG_WARNING(RTPS_MSG_OUT, "UDPTransport Error binding interface "
+                        EPROSIMA_LOG_WARNING(TRANSPORT_UDP, "UDPTransport Error binding interface "
                                 << (*locIt).name << " (skipping) with msg: " << e.what());
                     }
                 }
@@ -389,7 +408,7 @@ bool UDPTransportInterface::OpenOutputChannel(
     {
         (void)e;
         /* TODO Que hacer?
-           EPROSIMA_LOG_ERROR(RTPS_MSG_OUT, "UDPTransport Error binding at port: (" << IPLocator::getPhysicalPort(locator) << ")"
+           EPROSIMA_LOG_ERROR(TRANSPORT_UDP, "UDPTransport Error binding at port: (" << IPLocator::getPhysicalPort(locator) << ")"
             << " with msg: " << e.what());
            for (auto& socket : mOutputSockets)
            {
@@ -403,6 +422,19 @@ bool UDPTransportInterface::OpenOutputChannel(
     statistics_info_.add_entry(locator);
     rescan_interfaces_.store(false);
     return true;
+}
+
+bool UDPTransportInterface::OpenOutputChannels(
+        SendResourceList& send_resource_list,
+        const LocatorSelectorEntry& locator_selector_entry)
+{
+    bool success = false;
+    for (size_t i = 0; i < locator_selector_entry.state.unicast.size(); ++i)
+    {
+        size_t index = locator_selector_entry.state.unicast[i];
+        success |= OpenOutputChannel(send_resource_list, locator_selector_entry.unicast[index]);
+    }
+    return success;
 }
 
 Locator UDPTransportInterface::RemoteToMainLocal(
@@ -467,16 +499,16 @@ bool UDPTransportInterface::transform_remote_locator(
 }
 
 bool UDPTransportInterface::send(
-        const octet* send_buffer,
-        uint32_t send_buffer_size,
+        const std::vector<NetworkBuffer>& buffers,
+        uint32_t total_bytes,
         eProsimaUDPSocket& socket,
-        fastrtps::rtps::LocatorsIterator* destination_locators_begin,
-        fastrtps::rtps::LocatorsIterator* destination_locators_end,
+        fastdds::rtps::LocatorsIterator* destination_locators_begin,
+        fastdds::rtps::LocatorsIterator* destination_locators_end,
         bool only_multicast_purpose,
         bool whitelisted,
         const std::chrono::steady_clock::time_point& max_blocking_time_point)
 {
-    fastrtps::rtps::LocatorsIterator& it = *destination_locators_begin;
+    fastdds::rtps::LocatorsIterator& it = *destination_locators_begin;
 
     bool ret = true;
 
@@ -487,8 +519,8 @@ bool UDPTransportInterface::send(
     {
         if (IsLocatorSupported(*it))
         {
-            ret &= send(send_buffer,
-                            send_buffer_size,
+            ret &= send(buffers,
+                            total_bytes,
                             socket,
                             *it,
                             only_multicast_purpose,
@@ -503,8 +535,8 @@ bool UDPTransportInterface::send(
 }
 
 bool UDPTransportInterface::send(
-        const octet* send_buffer,
-        uint32_t send_buffer_size,
+        const std::vector<NetworkBuffer>& buffers,
+        uint32_t total_bytes,
         eProsimaUDPSocket& socket,
         const Locator& remote_locator,
         bool only_multicast_purpose,
@@ -513,7 +545,7 @@ bool UDPTransportInterface::send(
 {
     using namespace eprosima::fastdds::statistics::rtps;
 
-    if (send_buffer_size > configuration()->sendBufferSize)
+    if (total_bytes > configuration()->sendBufferSize)
     {
         return false;
     }
@@ -545,31 +577,32 @@ bool UDPTransportInterface::send(
 #endif // ifndef _WIN32
 
             asio::error_code ec;
-            statistics_info_.set_statistics_message_data(remote_locator, send_buffer, send_buffer_size);
-            bytesSent = getSocketPtr(socket)->send_to(asio::buffer(send_buffer,
-                            send_buffer_size), destinationEndpoint, 0, ec);
+            // Statistics submessage is always the last buffer to be added
+            statistics_info_.set_statistics_message_data(remote_locator, buffers.back(), total_bytes);
+            bytesSent = getSocketPtr(socket)->send_to(buffers, destinationEndpoint, 0, ec);
             if (!!ec)
             {
                 if ((ec.value() == asio::error::would_block) ||
                         (ec.value() == asio::error::try_again))
                 {
-                    EPROSIMA_LOG_WARNING(RTPS_MSG_OUT, "UDP send would have blocked. Packet is dropped.");
+                    EPROSIMA_LOG_WARNING(TRANSPORT_UDP, "UDP send would have blocked. Packet is dropped.");
                     return true;
                 }
 
-                EPROSIMA_LOG_WARNING(RTPS_MSG_OUT, ec.message());
+                EPROSIMA_LOG_WARNING(TRANSPORT_UDP, ec.message());
                 return false;
             }
         }
         catch (const std::exception& error)
         {
-            EPROSIMA_LOG_WARNING(RTPS_MSG_OUT, error.what());
+            EPROSIMA_LOG_WARNING(TRANSPORT_UDP, error.what());
             return false;
         }
 
         (void)bytesSent;
-        EPROSIMA_LOG_INFO(RTPS_MSG_OUT, "UDPTransport: " << bytesSent << " bytes TO endpoint: " << destinationEndpoint
-                                                         << " FROM " << getSocketPtr(socket)->local_endpoint());
+        EPROSIMA_LOG_INFO(TRANSPORT_UDP,
+                "UDPTransport: " << bytesSent << " bytes TO endpoint: " << destinationEndpoint <<
+                " FROM " << getSocketPtr(socket)->local_endpoint());
         success = true;
     }
 
@@ -592,7 +625,7 @@ bool UDPTransportInterface::send(
  * @return true when at least one entry was invalidated, false otherwise
  */
 static bool check_and_invalidate(
-        fastrtps::ResourceLimitedVector<LocatorSelectorEntry*>& entries,
+        fastdds::ResourceLimitedVector<LocatorSelectorEntry*>& entries,
         size_t index,
         const Locator& locator)
 {
@@ -620,7 +653,7 @@ static bool check_and_invalidate(
 void UDPTransportInterface::select_locators(
         LocatorSelector& selector) const
 {
-    fastrtps::ResourceLimitedVector<LocatorSelectorEntry*>& entries = selector.transport_starts();
+    fastdds::ResourceLimitedVector<LocatorSelectorEntry*>& entries = selector.transport_starts();
 
     for (size_t i = 0; i < entries.size(); ++i)
     {
@@ -783,5 +816,5 @@ NetmaskFilterInfo UDPTransportInterface::netmask_filter_info() const
 }
 
 } // namespace rtps
-} // namespace fastrtps
+} // namespace fastdds
 } // namespace eprosima

@@ -26,7 +26,7 @@
 #include "FlowControlExampleSubscriber.h"
 
 using namespace eprosima::fastdds::dds;
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds::rtps;
 
 FlowControlExampleSubscriber::FlowControlExampleSubscriber()
     : participant_(nullptr)
@@ -58,7 +58,7 @@ bool FlowControlExampleSubscriber::init()
 {
     // Create Participant
     DomainParticipantQos pqos;
-    pqos.wire_protocol().builtin.discovery_config.leaseDuration = eprosima::fastrtps::c_TimeInfinite;
+    pqos.wire_protocol().builtin.discovery_config.leaseDuration = eprosima::fastdds::c_TimeInfinite;
     pqos.name("Participant_subscriber"); //You can put the name you want
 
     participant_ = DomainParticipantFactory::get_instance()->create_participant(0, pqos);
@@ -124,7 +124,7 @@ void FlowControlExampleSubscriber::SubListener::on_data_available(
 {
     SampleInfo info;
     FlowControlExample st;
-    if (reader->take_next_sample(&st, &info) == ReturnCode_t::RETCODE_OK)
+    if (reader->take_next_sample(&st, &info) == RETCODE_OK)
     {
         if (info.valid_data)
         {

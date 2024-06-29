@@ -19,14 +19,15 @@
 #include <utility>
 
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/messages/CDRMessage.h>
-#include <fastdds/rtps/messages/MessageReceiver.h>
-#include <fastdds/rtps/transport/SenderResource.h>
-#include <fastdds/rtps/transport/TransportInterface.h>
-#include <fastrtps/utils/IPLocator.h>
+#include <fastdds/rtps/transport/SenderResource.hpp>
+#include <fastdds/rtps/transport/TransportInterface.hpp>
+#include <fastdds/utils/IPLocator.hpp>
 
+#include <rtps/messages/CDRMessage.hpp>
+#include <rtps/messages/MessageReceiver.h>
 #include <rtps/network/ReceiverResource.h>
 #include <rtps/network/utils/netmask_filter.hpp>
+#include <rtps/transport/asio_helpers.hpp>
 
 #include <utils/SystemInfo.hpp>
 
@@ -37,8 +38,6 @@ namespace eprosima {
 namespace fastdds {
 namespace rtps {
 
-using IPFinder = fastrtps::rtps::IPFinder;
-using IPLocator = fastrtps::rtps::IPLocator;
 using Log = fastdds::dds::Log;
 
 static bool get_ipv4s(
@@ -395,7 +394,20 @@ eProsimaUDPSocket UDPv4Transport::OpenAndBindInputSocket(
     getSocketPtr(socket)->open(generate_protocol());
     if (mReceiveBufferSize != 0)
     {
-        getSocketPtr(socket)->set_option(socket_base::receive_buffer_size(mReceiveBufferSize));
+        uint32_t configured_value = 0;
+        uint32_t minimum_value = configuration()->maxMessageSize;
+        if (!asio_helpers::try_setting_buffer_size<socket_base::receive_buffer_size>(
+                    socket, mReceiveBufferSize, minimum_value, configured_value))
+        {
+            EPROSIMA_LOG_ERROR(TRANSPORT_UDPV4,
+                    "Couldn't set receive buffer size to minimum value: " << minimum_value);
+        }
+        else if (mReceiveBufferSize != configured_value)
+        {
+            EPROSIMA_LOG_WARNING(TRANSPORT_UDPV4,
+                    "Receive buffer size could not be set to the desired value. "
+                    << "Using " << configured_value << " instead of " << mReceiveBufferSize);
+        }
     }
 
     if (is_multicast)
@@ -720,5 +732,5 @@ void UDPv4Transport::update_network_interfaces()
 }
 
 } // namespace rtps
-} // namespace fastrtps
+} // namespace fastdds
 } // namespace eprosima

@@ -22,8 +22,8 @@
 #include <cstring>
 #include <cstddef>
 
-using namespace eprosima::fastrtps;
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds;
+using namespace eprosima::fastdds::rtps;
 
 const size_t LatencyType::overhead = offsetof(LatencyType, data) +
         SerializedPayload_t::representation_header_size;
@@ -38,7 +38,7 @@ bool LatencyDataType::compare_data(
         return false;
     }
 
-    // bouncing time is ignored on comparisson
+    // bouncing time is ignored on comparison
 
     return 0 == memcmp(lt1.data, lt2.data, buffer_size_);
 }
@@ -54,7 +54,7 @@ void LatencyDataType::copy_data(
 }
 
 bool LatencyDataType::serialize(
-        void* data,
+        const void* const data,
         SerializedPayload_t* payload,
         eprosima::fastdds::dds::DataRepresentationId_t)
 {
@@ -89,7 +89,7 @@ bool LatencyDataType::deserialize(
 }
 
 std::function<uint32_t()> LatencyDataType::getSerializedSizeProvider(
-        void*,
+        const void* const,
         eprosima::fastdds::dds::DataRepresentationId_t)
 {
     uint32_t size = m_typeSize;
@@ -111,7 +111,7 @@ void LatencyDataType::deleteData(
 }
 
 bool TestCommandDataType::serialize(
-        void* data,
+        const void* const data,
         SerializedPayload_t* payload,
         eprosima::fastdds::dds::DataRepresentationId_t)
 {
@@ -134,7 +134,7 @@ bool TestCommandDataType::deserialize(
 }
 
 std::function<uint32_t()> TestCommandDataType::getSerializedSizeProvider(
-        void*,
+        const void* const,
         eprosima::fastdds::dds::DataRepresentationId_t)
 {
     return []() -> uint32_t

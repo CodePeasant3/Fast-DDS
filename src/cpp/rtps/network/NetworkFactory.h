@@ -12,29 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _RTPS_NETWORK_NETWORKFACTORY_H_
-#define _RTPS_NETWORK_NETWORKFACTORY_H_
+#ifndef FASTDDS_RTPS_NETWORK__NETWORKFACTORY_H
+#define FASTDDS_RTPS_NETWORK__NETWORKFACTORY_H
 
 #include <vector>
 #include <memory>
 
-#include <fastdds/rtps/common/Locator.h>
+#include <fastdds/rtps/common/Locator.hpp>
 #include <fastdds/rtps/common/LocatorList.hpp>
 #include <fastdds/rtps/common/LocatorSelector.hpp>
-#include <fastdds/rtps/messages/MessageReceiver.h>
-#include <fastdds/rtps/transport/SenderResource.h>
-#include <fastdds/rtps/transport/TransportInterface.h>
+#include <fastdds/rtps/transport/SenderResource.hpp>
+#include <fastdds/rtps/transport/TransportInterface.hpp>
 
+#include <rtps/messages/MessageReceiver.h>
 #include <rtps/network/ReceiverResource.h>
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 class RTPSParticipantAttributes;
 
 /**
- * Provides the FastRTPS library with abstract resources, which
+ * Provides the Fast DDS library with abstract resources, which
  * in turn manage the SEND and RECEIVE operations over some transport.
  * Once a transport is registered, it becomes invisible to the library
  * and is abstracted away for good.
@@ -72,7 +72,7 @@ public:
      */
     bool RegisterTransport(
             const fastdds::rtps::TransportDescriptorInterface* descriptor,
-            const fastrtps::rtps::PropertyPolicy* properties = nullptr,
+            const fastdds::rtps::PropertyPolicy* properties = nullptr,
             const uint32_t& max_msg_size_no_frag = 0);
 
     /**
@@ -283,18 +283,15 @@ public:
      * Add locators to the default unicast configuration.
      * */
     bool getDefaultUnicastLocators(
-            uint32_t domain_id,
             LocatorList_t& locators,
-            const RTPSParticipantAttributes& m_att) const;
+            uint32_t port) const;
 
     /**
      * Fill the locator with the default unicast configuration.
      * */
     bool fill_default_locator_port(
-            uint32_t domain_id,
             Locator_t& locator,
-            const RTPSParticipantAttributes& m_att,
-            bool is_multicast) const;
+            uint32_t port) const;
 
     /**
      * Shutdown method to close the connections of the transports.
@@ -323,6 +320,14 @@ public:
      */
     std::vector<fastdds::rtps::TransportNetmaskFilterInfo> netmask_filter_info() const;
 
+    /**
+     * Calculate well-known ports.
+     */
+    uint16_t calculate_well_known_port(
+            uint32_t domain_id,
+            const RTPSParticipantAttributes& att,
+            bool is_multicast) const;
+
 private:
 
     std::vector<std::unique_ptr<fastdds::rtps::TransportInterface>> mRegisteredTransports;
@@ -339,18 +344,10 @@ private:
 
     // Mask using transport kinds to indicate whether the transports allows localhost
     NetworkConfigSet_t network_configuration_;
-
-    /**
-     * Calculate well-known ports.
-     */
-    uint16_t calculate_well_known_port(
-            uint32_t domain_id,
-            const RTPSParticipantAttributes& att,
-            bool is_multicast) const;
 };
 
 } // namespace rtps
-} // namespace fastrtps
+} // namespace fastdds
 } // namespace eprosima
 
-#endif /* _RTPS_NETWORK_NETWORKFACTORY_H_ */
+#endif // FASTDDS_RTPS_NETWORK__NETWORKFACTORY_H

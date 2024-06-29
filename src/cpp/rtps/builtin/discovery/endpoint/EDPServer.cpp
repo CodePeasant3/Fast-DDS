@@ -16,20 +16,18 @@
  * @file EDPServer.cpp
  *
  */
+#include <rtps/builtin/discovery/endpoint/EDPServer.hpp>
+#include <rtps/builtin/discovery/endpoint/EDPServerListeners.hpp>
 
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/attributes/HistoryAttributes.h>
-#include <fastdds/rtps/attributes/ReaderAttributes.h>
-#include <fastdds/rtps/history/WriterHistory.h>
-#include <fastdds/rtps/writer/StatefulWriter.h>
-#include <fastdds/rtps/reader/StatefulReader.h>
+#include <fastdds/rtps/attributes/HistoryAttributes.hpp>
+#include <fastdds/rtps/attributes/ReaderAttributes.hpp>
+#include <fastdds/rtps/history/WriterHistory.hpp>
 
-#include <fastrtps/utils/fixed_size_string.hpp>
+#include <rtps/reader/StatefulReader.hpp>
+#include <rtps/writer/StatefulWriter.hpp>
 
-#include <rtps/builtin/discovery/endpoint/EDPServerListeners.hpp>
-#include <rtps/builtin/discovery/endpoint/EDPServer.hpp>
-
-using namespace ::eprosima::fastrtps::rtps;
+using namespace ::eprosima::fastdds::rtps;
 
 namespace eprosima {
 namespace fastdds {
@@ -239,12 +237,8 @@ bool EDPServer::removeLocalReader(
     {
         // We need to create a DATA(Ur) here to added it to the discovery database, so that the disposal can be
         // propagated to remote clients
-        CacheChange_t* change = writer->first->new_change(
-            [this]() -> uint32_t
-            {
-                return mp_PDP->builtin_attributes().readerPayloadSize;
-            },
-            NOT_ALIVE_DISPOSED_UNREGISTERED, guid);
+        CacheChange_t* change = EDPUtils::create_change(*writer, NOT_ALIVE_DISPOSED_UNREGISTERED, guid,
+                        mp_PDP->builtin_attributes().readerPayloadSize);
 
         // Populate the DATA(Ur)
         if (change != nullptr)
@@ -299,12 +293,8 @@ bool EDPServer::removeLocalWriter(
     {
         // We need to create a DATA(Uw) here to added it to the discovery database, so that the disposal can be
         // propagated to remote clients
-        CacheChange_t* change = writer->first->new_change(
-            [this]() -> uint32_t
-            {
-                return mp_PDP->builtin_attributes().writerPayloadSize;
-            },
-            NOT_ALIVE_DISPOSED_UNREGISTERED, guid);
+        CacheChange_t* change = EDPUtils::create_change(*writer, NOT_ALIVE_DISPOSED_UNREGISTERED, guid,
+                        mp_PDP->builtin_attributes().writerPayloadSize);
 
         // Populate the DATA(Uw)
         if (change != nullptr)
@@ -436,13 +426,13 @@ bool EDPServer::processLocalReaderProxyData(
 }
 
 bool EDPServer::process_disposal(
-        fastrtps::rtps::CacheChange_t* disposal_change,
+        fastdds::rtps::CacheChange_t* disposal_change,
         fastdds::rtps::ddb::DiscoveryDataBase& discovery_db,
-        fastrtps::rtps::GuidPrefix_t& change_guid_prefix,
+        fastdds::rtps::GuidPrefix_t& change_guid_prefix,
         bool should_publish_disposal)
 {
     bool ret_val = false;
-    eprosima::fastrtps::rtps::WriteParams wp = disposal_change->write_params;
+    eprosima::fastdds::rtps::WriteParams wp = disposal_change->write_params;
 
     // DATA(Uw) or DATA(Ur) cases
     if (discovery_db.is_writer(disposal_change) || discovery_db.is_reader(disposal_change))
@@ -456,7 +446,7 @@ bool EDPServer::process_disposal(
         if (nullptr != builtin_pair.first && nullptr != builtin_pair.second)
         {
             // Lock EDP writer
-            std::unique_lock<fastrtps::RecursiveTimedMutex> lock(builtin_pair.first->getMutex());
+            std::unique_lock<fastdds::RecursiveTimedMutex> lock(builtin_pair.first->getMutex());
 
             // Remove all DATA(w/r) with the same sample identity as the DATA(Uw/Ur) from EDP PUBs/Subs writer's history
             discovery_db.remove_related_alive_from_history_nts(builtin_pair.second, change_guid_prefix);
@@ -475,7 +465,7 @@ bool EDPServer::process_disposal(
 }
 
 bool EDPServer::process_and_release_change(
-        fastrtps::rtps::CacheChange_t* change,
+        fastdds::rtps::CacheChange_t* change,
         bool release_from_reader)
 {
     bool ret_val = false;
@@ -498,7 +488,7 @@ bool EDPServer::process_and_release_change(
 
             if (nullptr != builtin_to_release.first)
             {
-                builtin_to_release.first->releaseCache(change);
+                builtin_to_release.first->release_cache(change);
                 ret_val = true;
             }
         }
@@ -506,7 +496,7 @@ bool EDPServer::process_and_release_change(
         {
             auto builtin_to_release = builtin_to_remove_from;
 
-            builtin_to_release.first->release_change(change);
+            builtin_to_release.second->release_change(change);
             ret_val = true;
         }
     }

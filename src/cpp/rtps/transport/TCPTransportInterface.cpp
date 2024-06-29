@@ -18,10 +18,11 @@
 #include <cassert>
 #include <chrono>
 #include <cstring>
+#include <limits>
 #include <map>
-#include <set>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 #include <utility>
@@ -37,22 +38,22 @@
 #include <asio/ssl/verify_context.hpp>
 #endif // if TLS_FOUND
 
+#include <fastdds/config.hpp>
 #include <fastdds/dds/log/Log.hpp>
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/attributes/PropertyPolicy.h>
-#include <fastdds/rtps/common/CDRMessage_t.h>
+#include <fastdds/rtps/attributes/PropertyPolicy.hpp>
+#include <fastdds/rtps/common/CDRMessage_t.hpp>
 #include <fastdds/rtps/common/LocatorSelector.hpp>
 #include <fastdds/rtps/common/LocatorSelectorEntry.hpp>
-#include <fastdds/rtps/common/PortParameters.h>
-#include <fastdds/rtps/common/Types.h>
-#include <fastdds/rtps/transport/SenderResource.h>
-#include <fastdds/rtps/transport/SocketTransportDescriptor.h>
-#include <fastdds/rtps/transport/TCPTransportDescriptor.h>
-#include <fastdds/rtps/transport/TransportReceiverInterface.h>
-#include <fastrtps/config.h>
-#include <fastrtps/utils/IPLocator.h>
-#include <fastrtps/utils/System.h>
+#include <fastdds/rtps/common/PortParameters.hpp>
+#include <fastdds/rtps/common/Types.hpp>
+#include <fastdds/rtps/transport/SenderResource.hpp>
+#include <fastdds/rtps/transport/SocketTransportDescriptor.hpp>
+#include <fastdds/rtps/transport/TCPTransportDescriptor.hpp>
+#include <fastdds/rtps/transport/TransportReceiverInterface.hpp>
+#include <fastdds/utils/IPLocator.hpp>
 
+#include <rtps/transport/asio_helpers.hpp>
 #include <statistics/rtps/messages/RTPSStatisticsMessages.hpp>
 #include <utils/SystemInfo.hpp>
 #include <utils/thread.hpp>
@@ -75,13 +76,6 @@ namespace eprosima {
 namespace fastdds {
 namespace rtps {
 
-using octet = fastrtps::rtps::octet;
-using IPLocator = fastrtps::rtps::IPLocator;
-using SenderResource = fastrtps::rtps::SenderResource;
-using CDRMessage_t = fastrtps::rtps::CDRMessage_t;
-using LocatorSelector = fastrtps::rtps::LocatorSelector;
-using LocatorSelectorEntry = fastrtps::rtps::LocatorSelectorEntry;
-using PortParameters = fastrtps::rtps::PortParameters;
 using Log = fastdds::dds::Log;
 
 static const int s_default_keep_alive_frequency = 5000; // 5 SECONDS
@@ -97,7 +91,6 @@ TCPTransportDescriptor::TCPTransportDescriptor()
     , logical_port_increment(2)
     , tcp_negotiation_timeout(0)
     , enable_tcp_nodelay(false)
-    , wait_for_tcp_negotiation(false)
     , calculate_crc(true)
     , check_crc(true)
     , apply_security(false)
@@ -116,7 +109,6 @@ TCPTransportDescriptor::TCPTransportDescriptor(
     , logical_port_increment(t.logical_port_increment)
     , tcp_negotiation_timeout(t.tcp_negotiation_timeout)
     , enable_tcp_nodelay(t.enable_tcp_nodelay)
-    , wait_for_tcp_negotiation(t.wait_for_tcp_negotiation)
     , calculate_crc(t.calculate_crc)
     , check_crc(t.check_crc)
     , apply_security(t.apply_security)
@@ -139,7 +131,6 @@ TCPTransportDescriptor& TCPTransportDescriptor::operator =(
     logical_port_increment = t.logical_port_increment;
     tcp_negotiation_timeout = t.tcp_negotiation_timeout;
     enable_tcp_nodelay = t.enable_tcp_nodelay;
-    wait_for_tcp_negotiation = t.wait_for_tcp_negotiation;
     calculate_crc = t.calculate_crc;
     check_crc = t.check_crc;
     apply_security = t.apply_security;
@@ -161,7 +152,6 @@ bool TCPTransportDescriptor::operator ==(
            this->logical_port_increment == t.logical_port_increment &&
            this->tcp_negotiation_timeout == t.tcp_negotiation_timeout &&
            this->enable_tcp_nodelay == t.enable_tcp_nodelay &&
-           this->wait_for_tcp_negotiation == t.wait_for_tcp_negotiation &&
            this->calculate_crc == t.calculate_crc &&
            this->check_crc == t.check_crc &&
            this->apply_security == t.apply_security &&
@@ -316,13 +306,17 @@ bool TCPTransportInterface::check_crc(
 
 void TCPTransportInterface::calculate_crc(
         TCPHeader& header,
-        const octet* data,
-        uint32_t size) const
+        const std::vector<NetworkBuffer>& buffers) const
 {
     uint32_t crc(0);
-    for (uint32_t i = 0; i < size; ++i)
+    for (const NetworkBuffer& buffer : buffers)
     {
-        crc = RTCPMessageManager::addToCRC(crc, data[i]);
+        size_t size = buffer.size;
+        const octet* data = static_cast<const octet*>(buffer.buffer);
+        for (size_t i = 0; i < size; ++i)
+        {
+            crc = RTCPMessageManager::addToCRC(crc, data[i]);
+        }
     }
     header.crc = crc;
 }
@@ -418,15 +412,15 @@ uint16_t TCPTransportInterface::create_acceptor_socket(
 
 void TCPTransportInterface::fill_rtcp_header(
         TCPHeader& header,
-        const octet* send_buffer,
-        uint32_t send_buffer_size,
+        const std::vector<NetworkBuffer>& buffers,
+        uint32_t total_bytes,
         uint16_t logical_port) const
 {
-    header.length = send_buffer_size + static_cast<uint32_t>(TCPHeader::size());
+    header.length = total_bytes + static_cast<uint32_t>(TCPHeader::size());
     header.logical_port = logical_port;
     if (configuration()->calculate_crc)
     {
-        calculate_crc(header, send_buffer, send_buffer_size);
+        calculate_crc(header, buffers);
     }
 }
 
@@ -438,9 +432,45 @@ bool TCPTransportInterface::DoInputLocatorsMatch(
 }
 
 bool TCPTransportInterface::init(
-        const fastrtps::rtps::PropertyPolicy*,
+        const fastdds::rtps::PropertyPolicy*,
         const uint32_t& max_msg_size_no_frag)
 {
+    uint32_t maximumMessageSize = max_msg_size_no_frag == 0 ? s_maximumMessageSize : max_msg_size_no_frag;
+    uint32_t cfg_max_msg_size = configuration()->maxMessageSize;
+    uint32_t cfg_send_size = configuration()->sendBufferSize;
+    uint32_t cfg_recv_size = configuration()->receiveBufferSize;
+    uint32_t max_int_value = static_cast<uint32_t>(std::numeric_limits<int32_t>::max());
+
+    if (cfg_max_msg_size > maximumMessageSize)
+    {
+        EPROSIMA_LOG_ERROR(TRANSPORT_TCP, "maxMessageSize cannot be greater than " << maximumMessageSize);
+        return false;
+    }
+
+    if (cfg_send_size > max_int_value)
+    {
+        EPROSIMA_LOG_ERROR(TRANSPORT_TCP, "sendBufferSize cannot be greater than " << max_int_value);
+        return false;
+    }
+
+    if (cfg_recv_size > max_int_value)
+    {
+        EPROSIMA_LOG_ERROR(TRANSPORT_TCP, "receiveBufferSize cannot be greater than " << max_int_value);
+        return false;
+    }
+
+    if ((cfg_send_size > 0) && (cfg_max_msg_size > cfg_send_size))
+    {
+        EPROSIMA_LOG_ERROR(TRANSPORT_TCP, "maxMessageSize cannot be greater than sendBufferSize");
+        return false;
+    }
+
+    if ((cfg_recv_size > 0) && (cfg_max_msg_size > cfg_recv_size))
+    {
+        EPROSIMA_LOG_ERROR(TRANSPORT_TCP, "maxMessageSize cannot be greater than receiveBufferSize");
+        return false;
+    }
+
     if (!apply_tls_config())
     {
         // TODO decide wether the Transport initialization should keep working after this error
@@ -465,50 +495,29 @@ bool TCPTransportInterface::init(
     initial_peer_local_locator_port_ = local_endpoint.port();
 
     // Check system buffer sizes.
-    if (configuration()->sendBufferSize == 0)
+    uint32_t send_size = 0;
+    uint32_t recv_size = 0;
+    if (!asio_helpers::configure_buffer_sizes(
+                *initial_peer_local_locator_socket_, *configuration(), send_size, recv_size))
     {
-        socket_base::send_buffer_size option;
-        initial_peer_local_locator_socket_->get_option(option);
-        set_send_buffer_size(option.value());
-
-        if (configuration()->sendBufferSize < s_minimumSocketBuffer)
-        {
-            set_send_buffer_size(s_minimumSocketBuffer);
-        }
-    }
-
-    if (configuration()->receiveBufferSize == 0)
-    {
-        socket_base::receive_buffer_size option;
-        initial_peer_local_locator_socket_->get_option(option);
-        set_receive_buffer_size(option.value());
-
-        if (configuration()->receiveBufferSize < s_minimumSocketBuffer)
-        {
-            set_receive_buffer_size(s_minimumSocketBuffer);
-        }
-    }
-
-    uint32_t maximumMessageSize = max_msg_size_no_frag == 0 ? s_maximumMessageSize : max_msg_size_no_frag;
-
-    if (configuration()->maxMessageSize > maximumMessageSize)
-    {
-        EPROSIMA_LOG_ERROR(RTCP_MSG_OUT,
-                "maxMessageSize cannot be greater than " << std::to_string(maximumMessageSize));
+        EPROSIMA_LOG_ERROR(TRANSPORT_TCP, "Couldn't set buffer sizes to minimum value: " << cfg_max_msg_size);
         return false;
     }
 
-    if (configuration()->maxMessageSize > configuration()->sendBufferSize)
+    if (cfg_send_size > 0 && send_size != cfg_send_size)
     {
-        EPROSIMA_LOG_ERROR(RTCP_MSG_OUT, "maxMessageSize cannot be greater than send_buffer_size");
-        return false;
+        EPROSIMA_LOG_WARNING(TRANSPORT_TCP, "UDPTransport sendBufferSize could not be set to the desired value. "
+                << "Using " << send_size << " instead of " << cfg_send_size);
     }
 
-    if (configuration()->maxMessageSize > configuration()->receiveBufferSize)
+    if (cfg_recv_size > 0 && recv_size != cfg_recv_size)
     {
-        EPROSIMA_LOG_ERROR(RTCP_MSG_OUT, "maxMessageSize cannot be greater than receive_buffer_size");
-        return false;
+        EPROSIMA_LOG_WARNING(TRANSPORT_TCP, "UDPTransport receiveBufferSize could not be set to the desired value. "
+                << "Using " << recv_size << " instead of " << cfg_recv_size);
     }
+
+    set_send_buffer_size(send_size);
+    set_receive_buffer_size(recv_size);
 
     if (!rtcp_message_manager_)
     {
@@ -649,7 +658,7 @@ bool TCPTransportInterface::transform_remote_locator(
 }
 
 void TCPTransportInterface::SenderResourceHasBeenClosed(
-        fastrtps::rtps::Locator_t& locator)
+        fastdds::rtps::Locator_t& locator)
 {
     // The TCPSendResource associated channel cannot be removed from the channel_resources_ map. On transport's destruction
     // this map is consulted to send the unbind requests. If not sending it, the other participant wouldn't disconnect the
@@ -809,7 +818,7 @@ bool TCPTransportInterface::OpenOutputChannel(
         if (IPLocator::getPhysicalPort(physical_locator) == listening_port)
         {
             std::vector<Locator> list;
-            std::vector<fastrtps::rtps::IPFinder::info_IP> local_interfaces;
+            std::vector<fastdds::rtps::IPFinder::info_IP> local_interfaces;
             get_ips(local_interfaces, false, false);
             for (const auto& interface_it : local_interfaces)
             {
@@ -874,7 +883,7 @@ bool TCPTransportInterface::OpenOutputChannels(
         const LocatorSelectorEntry& locator_selector_entry)
 {
     bool success = false;
-    if (locator_selector_entry.remote_guid == fastrtps::rtps::c_Guid_Unknown)
+    if (locator_selector_entry.remote_guid == fastdds::rtps::c_Guid_Unknown)
     {
         // Only unicast is used in TCP
         for (size_t i = 0; i < locator_selector_entry.state.unicast.size(); ++i)
@@ -1098,9 +1107,6 @@ void TCPTransportInterface::perform_listen_operation(
         {
             remote_locator = remote_endpoint_to_locator(channel);
 
-            uint32_t port = channel->local_endpoint().port();
-            set_name_to_current_thread("dds.tcp.%u", port);
-
             if (channel->tcp_connection_type() == TCPChannelResource::TCPConnectionType::TCP_CONNECT_TYPE)
             {
                 rtcp_message_manager->sendConnectionRequest(channel);
@@ -1124,7 +1130,7 @@ void TCPTransportInterface::perform_listen_operation(
     {
         // Blocking receive.
         CDRMessage_t& msg = channel->message_buffer();
-        fastrtps::rtps::CDRMessage::initCDRMsg(&msg);
+        fastdds::rtps::CDRMessage::initCDRMsg(&msg);
         if (!Receive(rtcp_manager, channel, msg.buffer, msg.max_size, msg.length, msg.msg_endian, remote_locator))
         {
             continue;
@@ -1265,7 +1271,7 @@ bool TCPTransportInterface::Receive(
         octet* receive_buffer,
         uint32_t receive_buffer_capacity,
         uint32_t& receive_buffer_size,
-        fastrtps::rtps::Endianness_t msg_endian,
+        fastdds::rtps::Endianness_t msg_endian,
         Locator& remote_locator)
 {
     bool success = false;
@@ -1412,13 +1418,13 @@ bool TCPTransportInterface::Receive(
 }
 
 bool TCPTransportInterface::send(
-        const octet* send_buffer,
-        uint32_t send_buffer_size,
-        const fastrtps::rtps::Locator_t& locator,
-        fastrtps::rtps::LocatorsIterator* destination_locators_begin,
-        fastrtps::rtps::LocatorsIterator* destination_locators_end)
+        const std::vector<NetworkBuffer>& buffers,
+        uint32_t total_bytes,
+        const fastdds::rtps::Locator_t& locator,
+        fastdds::rtps::LocatorsIterator* destination_locators_begin,
+        fastdds::rtps::LocatorsIterator* destination_locators_end)
 {
-    fastrtps::rtps::LocatorsIterator& it = *destination_locators_begin;
+    fastdds::rtps::LocatorsIterator& it = *destination_locators_begin;
 
     bool ret = true;
 
@@ -1426,7 +1432,7 @@ bool TCPTransportInterface::send(
     {
         if (IsLocatorSupported(*it))
         {
-            ret &= send(send_buffer, send_buffer_size, locator, *it);
+            ret &= send(buffers, total_bytes, locator, *it);
         }
 
         ++it;
@@ -1436,9 +1442,9 @@ bool TCPTransportInterface::send(
 }
 
 bool TCPTransportInterface::send(
-        const octet* send_buffer,
-        uint32_t send_buffer_size,
-        const fastrtps::rtps::Locator_t& locator,
+        const std::vector<NetworkBuffer>& buffers,
+        uint32_t total_bytes,
+        const fastdds::rtps::Locator_t& locator,
         const Locator& remote_locator)
 {
     using namespace eprosima::fastdds::statistics::rtps;
@@ -1462,7 +1468,7 @@ bool TCPTransportInterface::send(
         }
     }
 
-    if (locator_mismatch || send_buffer_size > configuration()->sendBufferSize)
+    if (locator_mismatch || total_bytes > configuration()->sendBufferSize)
     {
         return false;
     }
@@ -1513,21 +1519,22 @@ bool TCPTransportInterface::send(
                 scoped_lock.lock();
             }
             TCPHeader tcp_header;
-            statistics_info_.set_statistics_message_data(remote_locator, send_buffer, send_buffer_size);
-            fill_rtcp_header(tcp_header, send_buffer, send_buffer_size, logical_port);
+            // Statistics submessage is always the last buffer to be added
+            statistics_info_.set_statistics_message_data(remote_locator, buffers.back(), total_bytes);
+            fill_rtcp_header(tcp_header, buffers, total_bytes, logical_port);
             {
                 asio::error_code ec;
                 size_t sent = channel->send(
                     (octet*)&tcp_header,
                     static_cast<uint32_t>(TCPHeader::size()),
-                    send_buffer,
-                    send_buffer_size,
+                    buffers,
+                    total_bytes,
                     ec);
 
-                if (sent != static_cast<uint32_t>(TCPHeader::size() + send_buffer_size) || ec)
+                if (sent != static_cast<uint32_t>(TCPHeader::size() + total_bytes) || ec)
                 {
                     EPROSIMA_LOG_WARNING(DEBUG, "Failed to send RTCP message (" << sent << " of " <<
-                            TCPHeader::size() + send_buffer_size << " b): " << ec.message());
+                            TCPHeader::size() + total_bytes << " b): " << ec.message());
                     success = false;
                 }
                 else
@@ -1554,7 +1561,7 @@ bool TCPTransportInterface::send(
 void TCPTransportInterface::select_locators(
         LocatorSelector& selector) const
 {
-    fastrtps::ResourceLimitedVector<LocatorSelectorEntry*>& entries =  selector.transport_starts();
+    fastdds::ResourceLimitedVector<LocatorSelectorEntry*>& entries =  selector.transport_starts();
 
     for (size_t i = 0; i < entries.size(); ++i)
     {
@@ -2073,5 +2080,5 @@ void TCPTransportInterface::send_channel_pending_logical_ports(
 }
 
 } // namespace rtps
-} // namespace fastrtps
+} // namespace fastdds
 } // namespace eprosima

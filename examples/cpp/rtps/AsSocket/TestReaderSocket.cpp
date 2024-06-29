@@ -19,19 +19,17 @@
 
 #include "TestReaderSocket.h"
 
-#include "fastrtps/rtps/reader/RTPSReader.h"
-#include "fastrtps/rtps/participant/RTPSParticipant.h"
-#include "fastrtps/rtps/RTPSDomain.h"
+#include <fastdds/rtps/attributes/HistoryAttributes.hpp>
+#include <fastdds/rtps/attributes/ReaderAttributes.hpp>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
+#include <fastdds/rtps/history/ReaderHistory.hpp>
+#include <fastdds/rtps/participant/RTPSParticipant.hpp>
+#include <fastdds/rtps/reader/RTPSReader.hpp>
+#include <fastdds/rtps/RTPSDomain.hpp>
+#include <fastdds/utils/IPLocator.hpp>
 
-#include "fastrtps/rtps/attributes/RTPSParticipantAttributes.h"
-#include "fastrtps/rtps/attributes/ReaderAttributes.h"
-#include "fastrtps/rtps/attributes/HistoryAttributes.h"
-
-#include "fastrtps/rtps/history/ReaderHistory.h"
-#include "fastrtps/utils/IPLocator.h"
-
-using namespace eprosima::fastrtps;
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds;
+using namespace eprosima::fastdds::rtps;
 
 TestReaderSocket::TestReaderSocket()
     : mp_participant(nullptr)
@@ -54,7 +52,7 @@ bool TestReaderSocket::init(
 {
     //CREATE PARTICIPANT
     RTPSParticipantAttributes PParam;
-    PParam.builtin.discovery_config.discoveryProtocol = eprosima::fastrtps::rtps::DiscoveryProtocol_t::NONE;
+    PParam.builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::NONE;
     PParam.builtin.use_WriterLivelinessProtocol = false;
     mp_participant = RTPSDomain::createParticipant(0, PParam);
     if (mp_participant == nullptr)
@@ -73,8 +71,8 @@ bool TestReaderSocket::init(
     IPLocator::setIPv4(loc, ip);
     loc.port = static_cast<uint16_t>(port);
     ratt.endpoint.multicastLocatorList.push_back(loc);
+    ratt.accept_messages_from_unkown_writers = true;
     mp_reader = RTPSDomain::createRTPSReader(mp_participant, ratt, mp_history, &m_listener);
-    mp_reader->enableMessagesFromUnkownWriters(true);
     if (mp_reader == nullptr)
     {
         return false;
@@ -90,11 +88,11 @@ void TestReaderSocket::run()
     std::cin >> aux;
 }
 
-void TestReaderSocket::MyListener::onNewCacheChangeAdded(
+void TestReaderSocket::MyListener::on_new_cache_change_added(
         RTPSReader* reader,
         const CacheChange_t* const change)
 {
     printf("Received: %s\n", change->serializedPayload.data);
-    reader->getHistory()->remove_change((CacheChange_t*)change);
+    reader->get_history()->remove_change((CacheChange_t*)change);
     m_received++;
 }

@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(fastrtps_FOUND TRUE)
+set(fastdds_FOUND TRUE)
+
+add_subdirectory(cpp/configuration)
+add_subdirectory(cpp/content_filter)
+add_subdirectory(cpp/custom_payload_pool)
 add_subdirectory(cpp/dds)
+add_subdirectory(cpp/delivery_mechanisms)
+add_subdirectory(cpp/hello_world)
 add_subdirectory(cpp/rtps)
+add_subdirectory(cpp/xtypes)

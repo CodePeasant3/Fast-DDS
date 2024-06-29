@@ -32,32 +32,11 @@ set(sqlite3_source_files
 
 set(DATAWRITERTESTS_SOURCE DataWriterTests.cpp
     ${DDSSQLFILTER_SOURCES}
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/AnnotationDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/AnnotationParameterValue.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/BuiltinAnnotationsTypeObject.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicData.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicDataFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicPubSubType.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicType.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilder.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilderFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeBuilderPtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypeMember.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/DynamicTypePtr.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/MemberDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeDescriptor.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeIdentifier.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeIdentifierTypes.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeNamesGenerator.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObject.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObjectFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypeObjectHashId.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dynamic-types/TypesBase.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/builtin/common/RPCHeadersImpl.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/builtin/typelookup/common/TypeLookupTypes.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/builtin/typelookup/TypeLookupManager.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/builtin/typelookup/TypeLookupReplyListener.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/builtin/typelookup/TypeLookupRequestListener.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/builtin/type_lookup_service/detail/rpc_typesPubSubTypes.cxx
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/builtin/type_lookup_service/detail/TypeLookupTypesPubSubTypes.cxx
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/builtin/type_lookup_service/TypeLookupManager.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/builtin/type_lookup_service/TypeLookupReplyListener.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/builtin/type_lookup_service/TypeLookupRequestListener.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/core/condition/Condition.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/core/condition/ConditionNotifier.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/core/condition/StatusCondition.cpp
@@ -71,11 +50,6 @@ set(DATAWRITERTESTS_SOURCE DataWriterTests.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/domain/DomainParticipantImpl.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/domain/qos/DomainParticipantFactoryQos.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/domain/qos/DomainParticipantQos.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/FileConsumer.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/Log.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/OStreamConsumer.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/StdoutConsumer.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/log/StdoutErrConsumer.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/publisher/DataWriter.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/publisher/DataWriterImpl.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/publisher/Publisher.cpp
@@ -101,6 +75,7 @@ set(DATAWRITERTESTS_SOURCE DataWriterTests.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/topic/TopicProxyFactory.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/topic/TypeSupport.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/fastdds/utils/QosConverters.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/attributes/EndpointSecurityAttributes.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/attributes/PropertyPolicy.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/attributes/RTPSParticipantAttributes.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/attributes/ThreadSettings.cpp
@@ -123,6 +98,7 @@ set(DATAWRITERTESTS_SOURCE DataWriterTests.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/builtin/discovery/participant/DirectMessageSender.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/builtin/discovery/participant/PDP.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/builtin/discovery/participant/PDPClient.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/builtin/discovery/participant/PDPClientListener.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/builtin/discovery/participant/PDPListener.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/builtin/discovery/participant/PDPServer.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/builtin/discovery/participant/PDPServerListener.cpp
@@ -134,24 +110,26 @@ set(DATAWRITERTESTS_SOURCE DataWriterTests.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/builtin/liveliness/WLPListener.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/GuidPrefix_t.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/LocatorWithMask.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/SerializedPayload.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/common/Time_t.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/DataSharing/DataSharingListener.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/DataSharing/DataSharingNotification.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/DataSharing/DataSharingPayloadPool.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/flowcontrol/FlowControllerConsts.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/flowcontrol/FlowControllerFactory.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/flowcontrol/ThroughputControllerDescriptor.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/history/CacheChangePool.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/history/History.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/history/ReaderHistory.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/history/TopicPayloadPool.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/history/TopicPayloadPoolRegistry.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/history/WriterHistory.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/messages/CDRMessage.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/messages/MessageReceiver.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/messages/RTPSGapBuilder.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/messages/RTPSMessageCreator.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/messages/RTPSMessageGroup.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/messages/SendBuffersManager.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/NetworkBuffer.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/NetworkFactory.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/ReceiverResource.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/network/utils/external_locators.cpp
@@ -160,6 +138,8 @@ set(DATAWRITERTESTS_SOURCE DataWriterTests.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/participant/RTPSParticipant.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/participant/RTPSParticipantImpl.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/persistence/PersistenceFactory.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/reader/BaseReader.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/reader/reader_utils.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/reader/RTPSReader.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/reader/StatefulPersistentReader.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/reader/StatefulReader.cpp
@@ -200,20 +180,19 @@ set(DATAWRITERTESTS_SOURCE DataWriterTests.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/writer/StatefulWriter.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/writer/StatelessPersistentWriter.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/rtps/writer/StatelessWriter.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLDynamicParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLElementParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLEndpointParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLParser.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLParserCommon.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/rtps/xmlparser/XMLProfileManager.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/IPFinder.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/IPLocator.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/md5.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/utils/string_convert.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/StringMatching.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/SystemInfo.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/TimedConditionVariable.cpp
     ${PROJECT_SOURCE_DIR}/src/cpp/utils/UnitsParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLDynamicParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLElementParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLEndpointParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLParser.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLParserCommon.cpp
+    ${PROJECT_SOURCE_DIR}/src/cpp/xmlparser/XMLProfileManager.cpp
     )
 
     if(SQLITE3_SUPPORT)
@@ -235,12 +214,10 @@ set(DATAWRITERTESTS_SOURCE DataWriterTests.cpp
             ${PROJECT_SOURCE_DIR}/src/cpp/statistics/rtps/monitor-service/MonitorServiceListener.cpp
             ${PROJECT_SOURCE_DIR}/src/cpp/statistics/rtps/reader/StatisticsReaderImpl.cpp
             ${PROJECT_SOURCE_DIR}/src/cpp/statistics/rtps/writer/StatisticsWriterImpl.cpp
-            ${PROJECT_SOURCE_DIR}/src/cpp/statistics/types/types.cxx
-            ${PROJECT_SOURCE_DIR}/src/cpp/statistics/types/typesv1.cxx
-            ${PROJECT_SOURCE_DIR}/src/cpp/statistics/types/typesPubSubTypes.cxx
             ${PROJECT_SOURCE_DIR}/src/cpp/statistics/types/monitorservice_typesPubSubTypes.cxx
-            ${PROJECT_SOURCE_DIR}/src/cpp/statistics/types/monitorservice_types.cxx
-            ${PROJECT_SOURCE_DIR}/src/cpp/statistics/types/monitorservice_typesv1.cxx
+            ${PROJECT_SOURCE_DIR}/src/cpp/statistics/types/monitorservice_typesTypeObjectSupport.cxx
+            ${PROJECT_SOURCE_DIR}/src/cpp/statistics/types/typesPubSubTypes.cxx
+            ${PROJECT_SOURCE_DIR}/src/cpp/statistics/types/typesTypeObjectSupport.cxx
             )
 
         list(APPEND DATAWRITERTESTS_SOURCE ${statistics_sources})
@@ -271,6 +248,7 @@ set(DATAWRITERTESTS_SOURCE DataWriterTests.cpp
             ${PROJECT_SOURCE_DIR}/src/cpp/rtps/security/exceptions/SecurityException.cpp
             ${PROJECT_SOURCE_DIR}/src/cpp/rtps/security/common/SharedSecretHandle.cpp
             ${PROJECT_SOURCE_DIR}/src/cpp/rtps/security/logging/Logging.cpp
+            ${PROJECT_SOURCE_DIR}/src/cpp/rtps/security/logging/LoggingLevel.cpp
             ${PROJECT_SOURCE_DIR}/src/cpp/rtps/security/SecurityManager.cpp
             ${PROJECT_SOURCE_DIR}/src/cpp/rtps/security/SecurityPluginFactory.cpp
             ${PROJECT_SOURCE_DIR}/src/cpp/rtps/builtin/discovery/participant/DS/PDPSecurityInitiatorListener.cpp
@@ -307,7 +285,6 @@ set(DATAWRITERTESTS_SOURCE DataWriterTests.cpp
     endif(TINYXML2_INCLUDE_DIR)
 
     set(PUBLISHERTESTS_SOURCE PublisherTests.cpp
-    ${PROJECT_SOURCE_DIR}/src/cpp/dds/pub/DataWriter.cpp
     )
 
 if(WIN32)
@@ -342,7 +319,7 @@ target_include_directories(PublisherTests PRIVATE
     ${PROJECT_SOURCE_DIR}/src/cpp
     ${PROJECT_SOURCE_DIR}/thirdparty/taocpp-pegtl
     )
-target_link_libraries(PublisherTests fastrtps fastcdr foonathan_memory
+target_link_libraries(PublisherTests fastdds fastcdr foonathan_memory
     GTest::gmock
     ${CMAKE_DL_LIBS})
 if(QNX)
@@ -369,14 +346,19 @@ target_compile_definitions(DataWriterTests PRIVATE
 )
 target_include_directories(DataWriterTests PRIVATE
     $<$<BOOL:${OPENSSL_INCLUDE_DIR}>:${OPENSSL_INCLUDE_DIR}>
-    ${PROJECT_SOURCE_DIR}/test/mock/rtps/PublisherHistory
+    ${PROJECT_SOURCE_DIR}/test/mock/dds/DataWriterHistory
     ${PROJECT_SOURCE_DIR}/include ${PROJECT_BINARY_DIR}/include
     ${Asio_INCLUDE_DIR}
     ${PROJECT_SOURCE_DIR}/src/cpp
     ${THIRDPARTY_BOOST_INCLUDE_DIR}
     ${PROJECT_SOURCE_DIR}/thirdparty/taocpp-pegtl
     )
-target_link_libraries(DataWriterTests fastcdr foonathan_memory
+target_link_libraries(DataWriterTests
+    fastcdr
+    fastdds::log
+    fastdds::xtypes::dynamic-types::impl
+    fastdds::xtypes::type-representation
+    foonathan_memory
     GTest::gmock
     ${CMAKE_DL_LIBS}
     ${TINYXML2_LIBRARY}

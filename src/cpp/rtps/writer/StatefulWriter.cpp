@@ -17,45 +17,53 @@
  *
  */
 
+#include "StatefulWriter.hpp"
+
 #include <mutex>
 #include <stdexcept>
 #include <vector>
 
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/builtin/BuiltinProtocols.h>
-#include <fastdds/rtps/builtin/liveliness/WLP.h>
 #include <fastdds/rtps/common/VendorId_t.hpp>
-#include <fastdds/rtps/history/WriterHistory.h>
-#include <fastdds/rtps/history/WriterHistory.h>
+#include <fastdds/rtps/history/WriterHistory.hpp>
+#include <fastdds/rtps/history/WriterHistory.hpp>
 #include <fastdds/rtps/interfaces/IReaderDataFilter.hpp>
-#include <fastdds/rtps/messages/RTPSMessageCreator.h>
-#include <fastdds/rtps/messages/RTPSMessageGroup.h>
-#include <fastdds/rtps/participant/RTPSParticipant.h>
-#include <fastdds/rtps/resources/ResourceEvent.h>
-#include <fastdds/rtps/resources/TimedEvent.h>
-#include <fastdds/rtps/writer/ReaderProxy.h>
-#include <fastdds/rtps/writer/StatefulWriter.h>
-#include <fastdds/rtps/writer/WriterListener.h>
-#include <fastrtps/utils/TimeConversion.h>
+#include <rtps/messages/RTPSMessageCreator.hpp>
+#include <fastdds/rtps/participant/RTPSParticipant.hpp>
+#include <fastdds/rtps/reader/RTPSReader.hpp>
+#include <fastdds/rtps/writer/WriterListener.hpp>
 
+#include <rtps/builtin/BuiltinProtocols.h>
+#include <rtps/builtin/liveliness/WLP.hpp>
 #include <rtps/DataSharing/DataSharingNotifier.hpp>
 #include <rtps/DataSharing/DataSharingPayloadPool.hpp>
 #include <rtps/DataSharing/WriterPool.hpp>
 #include <rtps/history/BasicPayloadPool.hpp>
 #include <rtps/history/CacheChangePool.h>
 #include <rtps/messages/RTPSGapBuilder.hpp>
+#include <rtps/messages/RTPSMessageGroup.hpp>
 #include <rtps/network/utils/external_locators.hpp>
 #include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/reader/BaseReader.hpp>
+#include <rtps/resources/ResourceEvent.h>
+#include <rtps/resources/TimedEvent.h>
 #include <rtps/RTPSDomainImpl.hpp>
+#include <rtps/writer/ReaderProxy.hpp>
+#include <utils/TimeConversion.hpp>
+
+#ifdef FASTDDS_STATISTICS
+#include <statistics/types/monitorservice_types.hpp>
+#endif // ifdef FASTDDS_STATISTICS
 
 #include "../builtin/discovery/database/DiscoveryDataBase.hpp"
 
 #include "../flowcontrol/FlowController.hpp"
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
+using BaseReader = fastdds::rtps::BaseReader;
 
 /**
  * Loops over all the readers in the vector, applying the given routine.
@@ -195,77 +203,6 @@ StatefulWriter::StatefulWriter(
     init(pimpl, att);
 }
 
-StatefulWriter::StatefulWriter(
-        RTPSParticipantImpl* pimpl,
-        const GUID_t& guid,
-        const WriterAttributes& att,
-        const std::shared_ptr<IPayloadPool>& payload_pool,
-        fastdds::rtps::FlowController* flow_controller,
-        WriterHistory* history,
-        WriterListener* listener)
-    : RTPSWriter(pimpl, guid, att, payload_pool, flow_controller, history, listener)
-    , periodic_hb_event_(nullptr)
-    , nack_response_event_(nullptr)
-    , ack_event_(nullptr)
-    , m_heartbeatCount(0)
-    , m_times(att.times)
-    , matched_remote_readers_(att.matched_readers_allocation)
-    , matched_readers_pool_(att.matched_readers_allocation)
-    , next_all_acked_notify_sequence_(0, 1)
-    , all_acked_(false)
-    , may_remove_change_cond_()
-    , may_remove_change_(0)
-    , disable_heartbeat_piggyback_(att.disable_heartbeat_piggyback)
-    , disable_positive_acks_(att.disable_positive_acks)
-    , keep_duration_us_(att.keep_duration.to_ns() * 1e-3)
-    , last_sequence_number_()
-    , biggest_removed_sequence_number_()
-    , sendBufferSize_(pimpl->get_min_network_send_buffer_size())
-    , currentUsageSendBufferSize_(static_cast<int32_t>(pimpl->get_min_network_send_buffer_size()))
-    , matched_local_readers_(att.matched_readers_allocation)
-    , matched_datasharing_readers_(att.matched_readers_allocation)
-    , locator_selector_general_(*this, att.matched_readers_allocation)
-    , locator_selector_async_(*this, att.matched_readers_allocation)
-{
-    init(pimpl, att);
-}
-
-StatefulWriter::StatefulWriter(
-        RTPSParticipantImpl* pimpl,
-        const GUID_t& guid,
-        const WriterAttributes& att,
-        const std::shared_ptr<IPayloadPool>& payload_pool,
-        const std::shared_ptr<IChangePool>& change_pool,
-        fastdds::rtps::FlowController* flow_controller,
-        WriterHistory* hist,
-        WriterListener* listen)
-    : RTPSWriter(pimpl, guid, att, payload_pool, change_pool, flow_controller, hist, listen)
-    , periodic_hb_event_(nullptr)
-    , nack_response_event_(nullptr)
-    , ack_event_(nullptr)
-    , m_heartbeatCount(0)
-    , m_times(att.times)
-    , matched_remote_readers_(att.matched_readers_allocation)
-    , matched_readers_pool_(att.matched_readers_allocation)
-    , next_all_acked_notify_sequence_(0, 1)
-    , all_acked_(false)
-    , may_remove_change_cond_()
-    , may_remove_change_(0)
-    , disable_heartbeat_piggyback_(att.disable_heartbeat_piggyback)
-    , disable_positive_acks_(att.disable_positive_acks)
-    , keep_duration_us_(att.keep_duration.to_ns() * 1e-3)
-    , last_sequence_number_()
-    , biggest_removed_sequence_number_()
-    , sendBufferSize_(pimpl->get_min_network_send_buffer_size())
-    , currentUsageSendBufferSize_(static_cast<int32_t>(pimpl->get_min_network_send_buffer_size()))
-    , matched_local_readers_(att.matched_readers_allocation)
-    , matched_datasharing_readers_(att.matched_readers_allocation)
-    , locator_selector_general_(*this, att.matched_readers_allocation)
-    , locator_selector_async_(*this, att.matched_readers_allocation)
-{
-    init(pimpl, att);
-}
-
 void StatefulWriter::init(
         RTPSParticipantImpl* pimpl,
         const WriterAttributes& att)
@@ -281,7 +218,7 @@ void StatefulWriter::init(
         {
             return send_periodic_heartbeat();
         },
-        TimeConv::Time_t2MilliSecondsDouble(m_times.heartbeatPeriod));
+        fastdds::rtps::TimeConv::Time_t2MilliSecondsDouble(m_times.heartbeatPeriod));
 
     nack_response_event_ = new TimedEvent(
         pimpl->getEventResource(),
@@ -290,7 +227,7 @@ void StatefulWriter::init(
             perform_nack_response();
             return false;
         },
-        TimeConv::Time_t2MilliSecondsDouble(m_times.nackResponseDelay));
+        fastdds::rtps::TimeConv::Time_t2MilliSecondsDouble(m_times.nackResponseDelay));
 
     if (disable_positive_acks_)
     {
@@ -376,7 +313,7 @@ StatefulWriter::~StatefulWriter()
 void StatefulWriter::prepare_datasharing_delivery(
         CacheChange_t* change)
 {
-    auto pool = std::dynamic_pointer_cast<WriterPool>(payload_pool_);
+    auto pool = std::dynamic_pointer_cast<WriterPool>(mp_history->get_payload_pool());
     assert (pool != nullptr);
 
     pool->add_to_shared_history(change);
@@ -472,7 +409,7 @@ bool StatefulWriter::intraprocess_delivery(
         {
             change->write_params.sample_identity(change->write_params.related_sample_identity());
         }
-        return reader->processDataMsg(change);
+        return BaseReader::downcast(reader)->process_data_msg(change);
     }
     return false;
 }
@@ -485,7 +422,8 @@ bool StatefulWriter::intraprocess_gap(
     RTPSReader* reader = reader_proxy->local_reader();
     if (reader)
     {
-        return reader->processGapMsg(m_guid, first_seq, SequenceNumberSet_t(last_seq), c_VendorId_eProsima);
+        return BaseReader::downcast(reader)->process_gap_msg(
+            m_guid, first_seq, SequenceNumberSet_t(last_seq), c_VendorId_eProsima);
     }
 
     return false;
@@ -518,9 +456,8 @@ bool StatefulWriter::intraprocess_heartbeat(
                 (liveliness || reader_proxy->has_changes()))
         {
             incrementHBCount();
-            returned_value =
-                    reader->processHeartbeatMsg(m_guid, m_heartbeatCount, first_seq, last_seq, true, liveliness,
-                            c_VendorId_eProsima);
+            returned_value = BaseReader::downcast(reader)->process_heartbeat_msg(
+                m_guid, m_heartbeatCount, first_seq, last_seq, true, liveliness, c_VendorId_eProsima);
         }
     }
 
@@ -558,7 +495,7 @@ bool StatefulWriter::change_removed_by_history(
         // remove from datasharing pool history
         if (is_datasharing_compatible())
         {
-            auto pool = std::dynamic_pointer_cast<WriterPool>(payload_pool_);
+            auto pool = std::dynamic_pointer_cast<WriterPool>(mp_history->get_payload_pool());
             assert (pool != nullptr);
 
             pool->remove_from_shared_history(a_change);
@@ -1015,7 +952,7 @@ void StatefulWriter::select_all_readers_nts(
 bool StatefulWriter::matched_reader_add(
         const ReaderProxyData& rdata)
 {
-    using fastdds::rtps::network::external_locators::filter_remote_locators;
+    using network::external_locators::filter_remote_locators;
 
     if (rdata.guid() == c_Guid_Unknown)
     {
@@ -1458,7 +1395,7 @@ bool StatefulWriter::wait_for_all_acked(
 
     if (!all_acked_)
     {
-        std::chrono::microseconds max_w(TimeConv::Duration_t2MicroSecondsInt64(max_wait));
+        std::chrono::microseconds max_w(fastdds::rtps::TimeConv::Duration_t2MicroSecondsInt64(max_wait));
         all_acked_cond_.wait_for(all_acked_lock, max_w, [&]()
                 {
                     return all_acked_;
@@ -1778,9 +1715,9 @@ bool StatefulWriter::send_periodic_heartbeat(
 
             for (ReaderProxy* reader : matched_datasharing_readers_)
             {
-                std::shared_ptr<WriterPool> p = std::dynamic_pointer_cast<WriterPool>(payload_pool_);
-                assert(p);
-                p->assert_liveliness();
+                auto pool = std::dynamic_pointer_cast<WriterPool>(mp_history->get_payload_pool());
+                assert(pool);
+                pool->assert_liveliness();
                 reader->datasharing_notify();
                 unacked_changes = true;
             }
@@ -2220,7 +2157,7 @@ bool StatefulWriter::get_connections(
         for_matched_readers(matched_local_readers_, [&connection, &connection_list](ReaderProxy*& reader)
                 {
                     connection.guid(fastdds::statistics::to_statistics_type(reader->guid()));
-                    connection.mode(fastdds::statistics::INTRAPROCESS);
+                    connection.mode(fastdds::statistics::ConnectionMode::INTRAPROCESS);
                     connection_list.push_back(connection);
 
                     return false;
@@ -2234,7 +2171,7 @@ bool StatefulWriter::get_connections(
         for_matched_readers(matched_datasharing_readers_, [&connection, &connection_list](ReaderProxy*& reader)
                 {
                     connection.guid(fastdds::statistics::to_statistics_type(reader->guid()));
-                    connection.mode(fastdds::statistics::DATA_SHARING);
+                    connection.mode(fastdds::statistics::ConnectionMode::DATA_SHARING);
                     connection_list.push_back(connection);
 
                     return false;
@@ -2268,7 +2205,7 @@ bool StatefulWriter::get_connections(
                     });
 
                     connection.guid(fastdds::statistics::to_statistics_type(reader->guid()));
-                    connection.mode(fastdds::statistics::TRANSPORT);
+                    connection.mode(fastdds::statistics::ConnectionMode::TRANSPORT);
                     connection.announced_locators(statistics_locators);
                     connection.used_locators(statistics_locators);
                     connection_list.push_back(connection);
@@ -2312,5 +2249,5 @@ void StatefulWriter::add_gaps_for_holes_in_history_(
 }
 
 }  // namespace rtps
-}  // namespace fastrtps
+}  // namespace fastdds
 }  // namespace eprosima

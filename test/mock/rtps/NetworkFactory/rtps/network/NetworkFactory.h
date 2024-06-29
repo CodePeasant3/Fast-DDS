@@ -12,27 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef _RTPS_NETWORK_NETWORKFACTORY_H_
-#define _RTPS_NETWORK_NETWORKFACTORY_H_
+#ifndef FASTDDS_RTPS_NETWORK__NETWORKFACTORY_H
+#define FASTDDS_RTPS_NETWORK__NETWORKFACTORY_H
 
 #include <memory>
 #include <vector>
 
-#include <fastdds/rtps/transport/SenderResource.h>
-#include <fastrtps/rtps/common/LocatorSelector.hpp>
-#include <fastrtps/rtps/messages/MessageReceiver.h>
-#include <fastrtps/transport/TransportInterface.h>
+#include <fastdds/rtps/common/LocatorSelector.hpp>
+#include <fastdds/rtps/transport/SenderResource.hpp>
+#include <fastdds/rtps/transport/TransportInterface.hpp>
 
+#include <rtps/messages/MessageReceiver.h>
 #include <rtps/network/ReceiverResource.h>
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 class RTPSParticipantAttributes;
 
 /**
- * Provides the FastRTPS library with abstract resources, which
+ * Provides the Fast DDS library with abstract resources, which
  * in turn manage the SEND and RECEIVE operations over some transport.
  * Once a transport is registered, it becomes invisible to the library
  * and is abstracted away for good.
@@ -109,7 +109,7 @@ public:
 };
 
 } // namespace rtps
-} // namespace fastrtps
+} // namespace fastdds
 } // namespace eprosima
 
-#endif // ifndef _RTPS_NETWORK_NETWORKFACTORY_H_
+#endif // FASTDDS_RTPS_NETWORK__NETWORKFACTORY_H

@@ -15,7 +15,7 @@
 /**
  * @file Time_t.cpp
  */
-#include <fastdds/rtps/common/Time_t.h>
+#include <fastdds/rtps/common/Time_t.hpp>
 
 #include <cstdlib>
 #include <chrono>
@@ -59,7 +59,7 @@ static void current_time_since_unix_epoch(
 } // unnamed namespace
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 
 constexpr int32_t Time_t::INFINITE_SECONDS;
 constexpr uint32_t Time_t::INFINITE_NANOSECONDS;
@@ -142,7 +142,7 @@ Time_t::Time_t(
 }
 
 Time_t::Time_t(
-        const eprosima::fastrtps::Time_t& time)
+        const eprosima::fastdds::Time_t& time)
 {
     seconds_ = time.seconds;
     set_nanosec(time.nanosec);
@@ -284,5 +284,5 @@ void Time_t::now(
 }
 
 } // namsepace rtps
-} // namespace fastrtps
+} // namespace fastdds
 } // namespace eprosima

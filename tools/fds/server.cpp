@@ -28,13 +28,12 @@
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/attributes/ServerAttributes.h>
-#include <fastdds/rtps/common/Locator.h>
-#include <fastdds/rtps/transport/UDPv6TransportDescriptor.h>
-#include <fastdds/rtps/transport/TCPv6TransportDescriptor.h>
-#include <fastdds/rtps/transport/TCPv4TransportDescriptor.h>
-#include <fastrtps/utils/IPLocator.h>
-#include <fastrtps/xmlparser/XMLProfileManager.h>
+#include <fastdds/rtps/attributes/ServerAttributes.hpp>
+#include <fastdds/rtps/common/Locator.hpp>
+#include <fastdds/rtps/transport/UDPv6TransportDescriptor.hpp>
+#include <fastdds/rtps/transport/TCPv6TransportDescriptor.hpp>
+#include <fastdds/rtps/transport/TCPv4TransportDescriptor.hpp>
+#include <fastdds/utils/IPLocator.hpp>
 
 volatile sig_atomic_t g_signal_status = 0;
 std::mutex g_signal_mutex;
@@ -57,9 +56,9 @@ int fastdds_discovery_server(
         char* argv[])
 {
     // Convenience aliases
-    using Locator = fastrtps::rtps::Locator_t;
-    using DiscoveryProtocol = fastrtps::rtps::DiscoveryProtocol_t;
-    using IPLocator = fastrtps::rtps::IPLocator;
+    using Locator = fastdds::rtps::Locator_t;
+    using DiscoveryProtocol = fastdds::rtps::DiscoveryProtocol;
+    using IPLocator = fastdds::rtps::IPLocator;
 
     // Skip program name argv[0] if present
     argc -= (argc > 0);
@@ -117,7 +116,7 @@ int fastdds_discovery_server(
                 sXMLConfigFile = sXMLConfigFile.substr(delimiter_pos + 1, sXMLConfigFile.length());
             }
 
-            if (ReturnCode_t::RETCODE_OK != DomainParticipantFactory::get_instance()->load_XML_profiles_file(
+            if (RETCODE_OK != DomainParticipantFactory::get_instance()->load_XML_profiles_file(
                         sXMLConfigFile))
             {
                 std::cout << "Cannot open XML file " << sXMLConfigFile << ". Please, check the path of this "
@@ -128,7 +127,7 @@ int fastdds_discovery_server(
             {
                 // Set environment variables to prevent loading the default XML file
 #ifdef _WIN32
-                if (0 != _putenv_s("FASTRTPS_DEFAULT_PROFILES_FILE", "") ||
+                if (0 != _putenv_s("FASTDDS_DEFAULT_PROFILES_FILE", "") ||
                         0 != _putenv_s("SKIP_DEFAULT_XML_FILE", "1"))
                 {
                     char errmsg[1024];
@@ -137,15 +136,15 @@ int fastdds_discovery_server(
                     return 1;
                 }
 #else
-                if (0 != unsetenv(fastrtps::xmlparser::DEFAULT_FASTRTPS_ENV_VARIABLE) ||
-                        0 != setenv(fastrtps::xmlparser::SKIP_DEFAULT_XML_FILE, "1", 1))
+                if (0 != unsetenv("FASTDDS_DEFAULT_PROFILES_FILE") ||
+                        0 != setenv("SKIP_DEFAULT_XML_FILE", "1", 1))
                 {
                     std::cout << "Error setting environment variables: " << std::strerror(errno) << std::endl;
                     return 1;
                 }
 #endif // ifdef _WIN32
                 // Set default participant QoS from XML file
-                if (ReturnCode_t::RETCODE_OK != DomainParticipantFactory::get_instance()->load_profiles())
+                if (RETCODE_OK != DomainParticipantFactory::get_instance()->load_profiles())
                 {
                     std::cout << "Error setting default DomainParticipantQos from XML default profile." << std::endl;
                     return 1;
@@ -154,7 +153,7 @@ int fastdds_discovery_server(
             }
             else
             {
-                if (ReturnCode_t::RETCODE_OK !=
+                if (RETCODE_OK !=
                         DomainParticipantFactory::get_instance()->get_participant_qos_from_profile(
                             profile, participantQos))
                 {
@@ -173,7 +172,7 @@ int fastdds_discovery_server(
 
     if (nullptr == pOp)
     {
-        fastrtps::rtps::GuidPrefix_t prefix_cero;
+        fastdds::rtps::GuidPrefix_t prefix_cero;
         if (participantQos.wire_protocol().prefix == prefix_cero)
         {
             std::cout << "Server id is mandatory if not defined in the XML file: use -i or --server-id option." <<
@@ -181,9 +180,9 @@ int fastdds_discovery_server(
             return 1;
         }
         else if (!(participantQos.wire_protocol().builtin.discovery_config.discoveryProtocol ==
-                eprosima::fastrtps::rtps::DiscoveryProtocol::SERVER ||
+                eprosima::fastdds::rtps::DiscoveryProtocol::SERVER ||
                 participantQos.wire_protocol().builtin.discovery_config.discoveryProtocol ==
-                eprosima::fastrtps::rtps::DiscoveryProtocol::BACKUP))
+                eprosima::fastdds::rtps::DiscoveryProtocol::BACKUP))
         {
             std::cout << "The provided configuration is not valid. Participant must be either SERVER or BACKUP. " <<
                 std::endl;
@@ -543,7 +542,7 @@ int fastdds_discovery_server(
         }
     }
 
-    fastrtps::rtps::GuidPrefix_t guid_prefix = participantQos.wire_protocol().prefix;
+    fastdds::rtps::GuidPrefix_t guid_prefix = participantQos.wire_protocol().prefix;
 
     // Create the server
     int return_value = 0;

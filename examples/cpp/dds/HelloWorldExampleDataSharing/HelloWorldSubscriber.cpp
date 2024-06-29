@@ -27,8 +27,6 @@
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
 #include <fastdds/dds/subscriber/SampleInfo.hpp>
 #include <fastdds/dds/subscriber/Subscriber.hpp>
-#include <fastrtps/attributes/ParticipantAttributes.h>
-#include <fastrtps/attributes/SubscriberAttributes.h>
 
 using namespace eprosima::fastdds::dds;
 
@@ -131,7 +129,7 @@ void HelloWorldSubscriber::SubListener::on_data_available(
         DataReader* reader)
 {
     SampleInfo info;
-    if (reader->take_next_sample(&hello_, &info) == ReturnCode_t::RETCODE_OK)
+    if (reader->take_next_sample(&hello_, &info) == RETCODE_OK)
     {
         if (info.instance_state == ALIVE_INSTANCE_STATE)
         {

@@ -19,21 +19,18 @@
 
 #include "TestWriterSocket.h"
 
-#include "fastrtps/rtps/writer/RTPSWriter.h"
-#include "fastrtps/rtps/participant/RTPSParticipant.h"
-#include "fastrtps/rtps/RTPSDomain.h"
+#include <fastdds/rtps/attributes/HistoryAttributes.hpp>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
+#include <fastdds/rtps/attributes/WriterAttributes.hpp>
+#include <fastdds/rtps/builtin/data/ReaderProxyData.hpp>
+#include <fastdds/rtps/history/WriterHistory.hpp>
+#include <fastdds/rtps/participant/RTPSParticipant.hpp>
+#include <fastdds/rtps/RTPSDomain.hpp>
+#include <fastdds/rtps/writer/RTPSWriter.hpp>
+#include <fastdds/utils/IPLocator.hpp>
 
-#include "fastrtps/rtps/attributes/RTPSParticipantAttributes.h"
-#include "fastrtps/rtps/attributes/WriterAttributes.h"
-#include "fastrtps/rtps/attributes/HistoryAttributes.h"
-
-#include "fastrtps/rtps/builtin/data/ReaderProxyData.h"
-
-#include "fastrtps/rtps/history/WriterHistory.h"
-#include "fastrtps/utils/IPLocator.h"
-
-using namespace eprosima::fastrtps;
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds;
+using namespace eprosima::fastdds::rtps;
 
 TestWriterSocket::TestWriterSocket()
     : mp_participant(nullptr)
@@ -54,7 +51,7 @@ bool TestWriterSocket::init(
 {
     //CREATE PARTICIPANT
     RTPSParticipantAttributes PParam;
-    PParam.builtin.discovery_config.discoveryProtocol = eprosima::fastrtps::rtps::DiscoveryProtocol::NONE;
+    PParam.builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::NONE;
     PParam.builtin.use_WriterLivelinessProtocol = false;
     mp_participant = RTPSDomain::createParticipant(0, PParam);
     if (mp_participant == nullptr)
@@ -92,10 +89,7 @@ void TestWriterSocket::run(
 {
     for (int i = 0; i < nmsgs; ++i )
     {
-        CacheChange_t* ch = mp_writer->new_change([]() -> uint32_t
-                        {
-                            return 255;
-                        }, ALIVE);
+        CacheChange_t* ch = mp_history->create_change(255, ALIVE);
 #if defined(_WIN32)
         ch->serializedPayload.length =
                 sprintf_s((char*)ch->serializedPayload.data, 255, "My example string %d", i) + 1;

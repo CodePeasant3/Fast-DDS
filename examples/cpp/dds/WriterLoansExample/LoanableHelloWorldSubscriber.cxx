@@ -26,7 +26,7 @@
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
 
 #include "LoanableHelloWorldSubscriber.h"
-#include "LoanableHelloWorldPubSubTypes.h"
+#include "LoanableHelloWorldPubSubTypes.hpp"
 
 using namespace eprosima::fastdds::dds;
 
@@ -127,7 +127,7 @@ void LoanableHelloWorldSubscriber::SubListener::on_data_available(
     LoanableHelloWorld st;
     SampleInfo info;
 
-    if (reader->take_next_sample(&st, &info) == ReturnCode_t::RETCODE_OK)
+    if (reader->take_next_sample(&st, &info) == RETCODE_OK)
     {
         if (info.instance_state == ALIVE_INSTANCE_STATE)
         {

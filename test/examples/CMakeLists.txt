@@ -25,6 +25,8 @@ endif()
 set(FILE_EXTENSION "")
 set(DOCKER_IMAGE_NAME "")
 set(SHELL_EXECUTABLE "")
+set(TINYXML2_LIB_DIR_COMPOSE_VOLUME "")
+set(TINYXML2_LIB_DIR_COMPOSE_LD_LIBRARY_PATH "")
 
 # Linux configurations
 if(UNIX AND NOT(APPLE) AND NOT(QNXNTO) AND NOT(ANDROID))
@@ -56,17 +58,26 @@ else()
     message(FATAL_ERROR "Unsupported platform")
 endif()
 
-# Find all docker compose yml files for testing
-file(GLOB files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*.yml)
+# Configure TinyXML2 library path if installed in user library path
+if(NOT (TINYXML2_FROM_SOURCE OR TINYXML2_FROM_THIRDPARTY))
+    get_filename_component(TINYXML2_LIB_DIR ${TINYXML2_LIBRARY} DIRECTORY)
+    set(TINYXML2_LIB_DIR_COMPOSE_VOLUME "- ${TINYXML2_LIB_DIR}:${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/fastdds:ro")
+    set(TINYXML2_LIB_DIR_COMPOSE_LD_LIBRARY_PATH ":${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/fastdds")
+endif()
 
-# Configure the docker compose files
-foreach(file ${files})
-    message(STATUS "  Configuring example test: ${file}")
-    configure_file(${file} ${CMAKE_CURRENT_BINARY_DIR}/${file} @ONLY)
+# Find all pytest files for testing
+file(GLOB examples_python_tests RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*.py)
+
+# Configure the pytest files, and add a test for each one
+foreach(example_test ${examples_python_tests})
+    get_filename_component(example_name ${example_test} NAME_WE)
+    string(REPLACE "test_" "" example_name "${example_name}")
+    message(STATUS "  Configuring example test: ${example_name}")
+    configure_file(${example_test}
+                   ${CMAKE_CURRENT_BINARY_DIR}/${example_name}/${example_test} @ONLY)
+    configure_file(${example_name}.compose.yml
+                   ${CMAKE_CURRENT_BINARY_DIR}/${example_name}/${example_name}.compose.yml @ONLY)
+    add_test(NAME example_tests.${example_name}
+             COMMAND ${Python3_EXECUTABLE} -m pytest -vrP
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${example_name})
 endforeach()
-
-# Copy pytest file
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_examples.py ${CMAKE_CURRENT_BINARY_DIR}/test_examples.py @ONLY)
-
-# Add test to ctest runs it
-add_test(NAME example_tests COMMAND ${Python3_EXECUTABLE} -m pytest -vrP WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

@@ -29,9 +29,9 @@ endif()
 ###############################################################################
 # Project                                                                     #
 ###############################################################################
-project(fastrtps VERSION "2.14.0" LANGUAGES C CXX)
+project(fastdds VERSION "3.0.0" LANGUAGES C CXX)
 
-set(PROJECT_NAME_LARGE "Fast RTPS")
+set(PROJECT_NAME_LARGE "Fast DDS")
 string(TOUPPER "${PROJECT_NAME}" PROJECT_NAME_UPPER)
 
 message(STATUS "Version: ${PROJECT_VERSION}")
@@ -69,7 +69,7 @@ if(MSVC OR MSVC_IDE)
     endif()
 else()
     set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -Wno-unknown-pragmas -Wno-error=deprecated-declarations")
+        "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra -Wno-unknown-pragmas -Wno-error=deprecated-declarations -Wno-switch-bool")
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-psabi")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
@@ -231,12 +231,12 @@ option(BUILD_SHARED_LIBS "Create shared libraries by default" ON)
 ###############################################################################
 include(${PROJECT_SOURCE_DIR}/cmake/common/eprosima_libraries.cmake)
 
-# if we are building Fast-DDS as a static library we must load Fast-CDR as one
+# if we are building Fast DDS as a static library we must load Fast-CDR as one
 if(NOT BUILD_SHARED_LIBS)
     set(FASTDDS_STATIC ON)
 endif()
 
-eprosima_find_package(fastcdr REQUIRED)
+eprosima_find_package(fastcdr 2 REQUIRED)
 eprosima_find_thirdparty(Asio asio VERSION 1.10.8)
 eprosima_find_thirdparty(TinyXML2 tinyxml2)
 
@@ -312,7 +312,9 @@ option(SHM_TRANSPORT_DEFAULT "Add SHM transport to the default transports" ON)
 set(LOG_CONSUMER_DEFAULT AUTO CACHE STRING "Selects default LogConsumer")
 set_property(CACHE LOG_CONSUMER_DEFAULT PROPERTY STRINGS AUTO STDOUT STDOUTERR)
 
-if(LOG_CONSUMER_DEFAULT STREQUAL "STDOUTERR")
+if(LOG_CONSUMER_DEFAULT STREQUAL "STDOUT")
+    set(STDOUTERR_LOG_CONSUMER OFF)
+else()
     set(STDOUTERR_LOG_CONSUMER ON)
 endif()
 
@@ -479,7 +481,7 @@ if(BUILD_DOCUMENTATION)
         set(USE_DOT YES)
     endif()
     # Configure the template doxyfile for or specific project
-    configure_file(doxyfile.in ${PROJECT_BINARY_DIR}/doxyfile @ONLY IMMEDIATE)
+    configure_file(utils/doxygen/doxyfile.in ${PROJECT_BINARY_DIR}/doxyfile @ONLY IMMEDIATE)
     # Add custom target to run doxygen when ever the project is build
     add_custom_target(doxygen
         COMMAND "${DOXYGEN_EXECUTABLE}" "${PROJECT_BINARY_DIR}/doxyfile"
@@ -499,7 +501,6 @@ if(BUILD_DOCUMENTATION)
         set(README_INSTALL_LOCATION "${DOC_INSTALL_DIR}")
     endif()
 
-    configure_file(doc/README.html.in ${README_LOCATION}/README.html @ONLY IMMEDIATE)
 
     ### ReadTheDocs ########################
     if(NOT CHECK_DOCUMENTATION)
@@ -559,7 +560,7 @@ install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
     )
 
 # Install xml validators
-install(FILES ${PROJECT_SOURCE_DIR}/resources/xsd/fastRTPS_profiles.xsd
+install(FILES ${PROJECT_SOURCE_DIR}/resources/xsd/fastdds_profiles.xsd
     DESTINATION ${DATA_INSTALL_DIR}
     COMPONENT xsd
     )
@@ -574,8 +575,8 @@ option(INSTALL_EXAMPLES "Install example" OFF)
 if(INSTALL_EXAMPLES)
   # Install examples
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/cpp
-      DESTINATION examples/
-      COMPONENT examples
+      DESTINATION ${DATA_INSTALL_DIR}/fastdds/examples/
+      COMPONENT ${DATA_INSTALL_DIR}/fastdds/examples
       PATTERN "examples/CMakeLists.txt" EXCLUDE
       )
 endif()
@@ -596,11 +597,6 @@ if(BUILD_DOCUMENTATION)
     # Instalation of doxygen files
     install(DIRECTORY ${PROJECT_BINARY_DIR}/doc/api_reference
         DESTINATION ${DOC_INSTALL_DIR}
-        COMPONENT documentation
-        )
-
-    install(FILES "${README_LOCATION}/README.html"
-        DESTINATION ${README_INSTALL_LOCATION}
         COMPONENT documentation
         )
 

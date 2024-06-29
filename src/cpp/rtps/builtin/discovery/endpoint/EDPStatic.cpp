@@ -17,27 +17,26 @@
  *
  */
 
-#include <fastdds/rtps/builtin/discovery/endpoint/EDPStatic.h>
-#include <fastdds/rtps/builtin/discovery/participant/PDPSimple.h>
-#include <fastrtps/xmlparser/XMLEndpointParser.h>
-
-#include <fastdds/rtps/builtin/data/WriterProxyData.h>
-#include <fastdds/rtps/builtin/data/ReaderProxyData.h>
-#include <fastdds/rtps/builtin/data/ParticipantProxyData.h>
-
-#include <fastdds/rtps/reader/RTPSReader.h>
-#include <fastdds/rtps/writer/RTPSWriter.h>
-
-#include <fastdds/dds/log/Log.hpp>
-
-#include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/builtin/discovery/endpoint/EDPStatic.h>
 
 #include <mutex>
 #include <sstream>
+
 #include <tinyxml2.h>
 
+#include <fastdds/dds/log/Log.hpp>
+#include <fastdds/rtps/builtin/data/ParticipantProxyData.hpp>
+#include <fastdds/rtps/builtin/data/ReaderProxyData.hpp>
+#include <fastdds/rtps/builtin/data/WriterProxyData.hpp>
+#include <fastdds/rtps/reader/RTPSReader.hpp>
+#include <fastdds/rtps/writer/RTPSWriter.hpp>
+
+#include <rtps/builtin/discovery/participant/PDPSimple.h>
+#include <rtps/participant/RTPSParticipantImpl.h>
+#include <xmlparser/XMLEndpointParser.h>
+
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 const char* exchange_format_property_name = "dds.discovery.static_edp.exchange_format";
@@ -491,7 +490,7 @@ void EDPStatic::assignRemoteEndpoints(
 
 bool EDPStatic::newRemoteReader(
         const GUID_t& participant_guid,
-        const string_255& participant_name,
+        const fastcdr::string_255& participant_name,
         uint16_t user_id,
         EntityId_t ent_id)
 {
@@ -542,7 +541,7 @@ bool EDPStatic::newRemoteReader(
 
 bool EDPStatic::newRemoteWriter(
         const GUID_t& participant_guid,
-        const string_255& participant_name,
+        const fastcdr::string_255& participant_name,
         uint16_t user_id,
         EntityId_t ent_id,
         const GUID_t& persistence_guid)
@@ -621,5 +620,5 @@ bool EDPStatic::checkEntityId(
 }
 
 } /* namespace rtps */
-} /* namespace fastrtps */
+} /* namespace fastdds */
 } /* namespace eprosima */

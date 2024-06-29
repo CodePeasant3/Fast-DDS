@@ -21,7 +21,7 @@
 #define _FASTDDS_RTPS_DSERVEREVENT2_H_
 #ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
 
-#include <fastdds/rtps/resources/TimedEvent.h>
+#include <rtps/resources/TimedEvent.h>
 
 namespace eprosima {
 namespace fastdds {
@@ -34,7 +34,7 @@ class PDPServer;
  * Class DServerRoutineEvent, TimedEvent used to synchronize discover-server servers
  *@ingroup DISCOVERY_MODULE
  */
-class DServerRoutineEvent : public fastrtps::rtps::TimedEvent
+class DServerRoutineEvent : public TimedEvent
 {
 public:
 
@@ -60,7 +60,7 @@ public:
     double server_routine_period_;
 };
 
-class DServerPingEvent : public fastrtps::rtps::TimedEvent
+class DServerPingEvent : public TimedEvent
 {
 public:
 

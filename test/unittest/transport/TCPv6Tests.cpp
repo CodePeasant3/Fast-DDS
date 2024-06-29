@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <limits>
 #include <memory>
 #include <thread>
 
@@ -19,20 +20,21 @@
 #include <gtest/gtest.h>
 
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/attributes/RTPSParticipantAttributes.h>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
 #include <fastdds/rtps/common/LocatorList.hpp>
-#include <fastrtps/transport/TCPv6TransportDescriptor.h>
-#include <fastrtps/utils/IPLocator.h>
-#include <fastrtps/utils/Semaphore.h>
+#include <fastdds/rtps/transport/TCPv6TransportDescriptor.hpp>
+#include <fastdds/rtps/transport/NetworkBuffer.hpp>
+#include <fastdds/utils/IPLocator.hpp>
 
-#include <MockReceiverResource.h>
-#include "mock/MockTCPv6Transport.h"
 #include <rtps/network/NetworkFactory.h>
 #include <rtps/transport/TCPv6Transport.h>
+#include <utils/Semaphore.hpp>
 
-using namespace eprosima::fastrtps::rtps;
-using namespace eprosima::fastrtps;
-using TCPv6Transport = eprosima::fastdds::rtps::TCPv6Transport;
+#include "mock/MockTCPv6Transport.h"
+#include <MockReceiverResource.h>
+
+using namespace eprosima::fastdds::rtps;
+using namespace eprosima::fastdds;
 
 #if defined(_WIN32)
 #define GET_PID _getpid
@@ -82,6 +84,74 @@ public:
     std::unique_ptr<std::thread> senderThread;
     std::unique_ptr<std::thread> receiverThread;
 };
+
+TEST_F(TCPv6Tests, wrong_configuration_values)
+{
+    // Too big sendBufferSize
+    {
+        auto wrong_descriptor = descriptor;
+        wrong_descriptor.sendBufferSize = std::numeric_limits<uint32_t>::max();
+        TCPv6Transport transportUnderTest(wrong_descriptor);
+        ASSERT_FALSE(transportUnderTest.init());
+        eprosima::fastdds::dds::Log::Flush();
+    }
+
+    // Too big receiveBufferSize
+    {
+        auto wrong_descriptor = descriptor;
+        wrong_descriptor.receiveBufferSize = std::numeric_limits<uint32_t>::max();
+        TCPv6Transport transportUnderTest(wrong_descriptor);
+        ASSERT_FALSE(transportUnderTest.init());
+        eprosima::fastdds::dds::Log::Flush();
+    }
+
+    // Too big maxMessageSize
+    {
+        auto wrong_descriptor = descriptor;
+        wrong_descriptor.maxMessageSize = std::numeric_limits<uint32_t>::max();
+        TCPv6Transport transportUnderTest(wrong_descriptor);
+        ASSERT_FALSE(transportUnderTest.init());
+        eprosima::fastdds::dds::Log::Flush();
+    }
+
+    // maxMessageSize bigger than receiveBufferSize
+    {
+        auto wrong_descriptor = descriptor;
+        wrong_descriptor.maxMessageSize = 10;
+        wrong_descriptor.receiveBufferSize = 5;
+        TCPv6Transport transportUnderTest(wrong_descriptor);
+        ASSERT_FALSE(transportUnderTest.init());
+        eprosima::fastdds::dds::Log::Flush();
+    }
+
+    // maxMessageSize bigger than sendBufferSize
+    {
+        auto wrong_descriptor = descriptor;
+        wrong_descriptor.maxMessageSize = 10;
+        wrong_descriptor.sendBufferSize = 5;
+        TCPv6Transport transportUnderTest(wrong_descriptor);
+        ASSERT_FALSE(transportUnderTest.init());
+        eprosima::fastdds::dds::Log::Flush();
+    }
+
+    // Buffer sizes automatically decrease
+    {
+        auto wrong_descriptor = descriptor;
+        wrong_descriptor.sendBufferSize = static_cast<uint32_t>(std::numeric_limits<int32_t>::max());
+        wrong_descriptor.receiveBufferSize = static_cast<uint32_t>(std::numeric_limits<int32_t>::max());
+        wrong_descriptor.maxMessageSize = 1470;
+        TCPv6Transport transportUnderTest(wrong_descriptor);
+        ASSERT_TRUE(transportUnderTest.init());
+        auto* final_cfg = transportUnderTest.configuration();
+        EXPECT_GE(final_cfg->sendBufferSize, final_cfg->maxMessageSize);
+        // The system could allow for the send buffer to be MAX_INT, so we cannot check it to be strictly lower
+        EXPECT_LE(final_cfg->sendBufferSize, wrong_descriptor.sendBufferSize);
+        EXPECT_GE(final_cfg->receiveBufferSize, final_cfg->maxMessageSize);
+        // The system could allow for the receive buffer to be MAX_INT, so we cannot check it to be strictly lower
+        EXPECT_LE(final_cfg->receiveBufferSize, wrong_descriptor.receiveBufferSize);
+        eprosima::fastdds::dds::Log::Flush();
+    }
+}
 
 TEST_F(TCPv6Tests, conversion_to_ip6_string)
 {
@@ -307,7 +377,7 @@ TEST_F(TCPv6Tests, client_announced_local_port_uniqueness)
 TEST_F(TCPv6Tests, non_blocking_send)
 {
     uint16_t port = g_default_port;
-    uint32_t msg_size = eprosima::fastdds::rtps::s_minimumSocketBuffer;
+    uint32_t msg_size = 64ul * 1024ul;
     // Create a TCP Server transport
     TCPv6TransportDescriptor senderDescriptor;
     senderDescriptor.add_listener_port(port);
@@ -371,10 +441,13 @@ TEST_F(TCPv6Tests, non_blocking_send)
     std::vector<octet> message(msg_size * 2, 0);
     const octet* data = message.data();
     size_t size = message.size();
+    NetworkBuffer buffers(data, size);
+    std::vector<NetworkBuffer> buffer_list;
+    buffer_list.push_back(buffers);
 
     // Send the message with no header. Since TCP actually allocates twice the size of the buffer requested
     // it should be able to send a message of msg_size*2.
-    size_t bytes_sent = sender_channel_resource->send(nullptr, 0, data, size, ec);
+    size_t bytes_sent = sender_channel_resource->send(nullptr, 0, buffer_list, size, ec);
     ASSERT_EQ(bytes_sent, size);
 
     // Now wait until the receive buffer is flushed (send buffer will be empty too)
@@ -386,7 +459,9 @@ TEST_F(TCPv6Tests, non_blocking_send)
     message.resize(msg_size * 2 + 1);
     data = message.data();
     size = message.size();
-    bytes_sent = sender_channel_resource->send(nullptr, 0, data, size, ec);
+    buffer_list.clear();
+    buffer_list.emplace_back(data, size);
+    bytes_sent = sender_channel_resource->send(nullptr, 0, buffer_list, size, ec);
     ASSERT_EQ(bytes_sent, 0u);
 
     socket.shutdown(asio::ip::tcp::socket::shutdown_both);

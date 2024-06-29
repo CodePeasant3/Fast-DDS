@@ -22,10 +22,10 @@
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 #include <fastdds/dds/publisher/PublisherListener.hpp>
-#include <fastdds/rtps/participant/ParticipantDiscoveryInfo.h>
+#include <fastdds/rtps/participant/ParticipantDiscoveryInfo.hpp>
 
-#include "types/FixedSizedPubSubTypes.h"
-#include "types/HelloWorldPubSubTypes.h"
+#include "types/FixedSizedPubSubTypes.hpp"
+#include "types/HelloWorldPubSubTypes.hpp"
 
 #include <mutex>
 #include <condition_variable>
@@ -58,17 +58,19 @@ public:
     /**
      * This method is called when a new Participant is discovered, or a previously discovered participant
      * changes its QOS or is removed.
-     * @param p Pointer to the Participant
+     * @param participant Pointer to the Participant
      * @param info DiscoveryInfo.
+     * @param should_be_ignored Flag to indicate the library to automatically ignore the discovered Participant.
      */
     void on_participant_discovery(
-            DomainParticipant* /*participant*/,
-            fastrtps::rtps::ParticipantDiscoveryInfo&& info) override;
+            DomainParticipant* participant,
+            fastdds::rtps::ParticipantDiscoveryInfo&& info,
+            bool& should_be_ignored) override;
 
 #if HAVE_SECURITY
     void onParticipantAuthentication(
             DomainParticipant* participant,
-            fastrtps::rtps::ParticipantAuthenticationInfo&& info) override;
+            fastdds::rtps::ParticipantAuthenticationInfo&& info) override;
 #endif // if HAVE_SECURITY
 
     bool init(

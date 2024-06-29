@@ -20,12 +20,19 @@
 #ifndef TESTWRITERSOCKET_H_
 #define TESTWRITERSOCKET_H_
 
-#include "fastrtps/rtps/rtps_fwd.h"
-
-
-#include <string>
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
+#include <string>
+
+namespace eprosima {
+namespace fastdds {
+namespace rtps {
+class RTPSParticipant;
+class WriterHistory;
+class RTPSWriter;
+} // namespace rtps
+} // namespace fastdds
+} // namespace eprosima
 
 class TestWriterSocket
 {
@@ -36,11 +43,11 @@ public:
 
     virtual ~TestWriterSocket();
 
-    eprosima::fastrtps::rtps::RTPSParticipant* mp_participant;
+    eprosima::fastdds::rtps::RTPSParticipant* mp_participant;
 
-    eprosima::fastrtps::rtps::RTPSWriter* mp_writer;
+    eprosima::fastdds::rtps::RTPSWriter* mp_writer;
 
-    eprosima::fastrtps::rtps::WriterHistory* mp_history;
+    eprosima::fastdds::rtps::WriterHistory* mp_history;
 
     bool init(
             std::string ip,

@@ -17,20 +17,24 @@
  *
  */
 
-#include <fastdds/rtps/writer/ReaderLocator.h>
+#include <rtps/writer/ReaderLocator.hpp>
 
-#include <fastdds/rtps/common/CacheChange.h>
+#include <fastdds/rtps/common/CacheChange.hpp>
 #include <fastdds/rtps/common/LocatorListComparisons.hpp>
-#include <fastdds/rtps/reader/RTPSReader.h>
+#include <fastdds/rtps/reader/RTPSReader.hpp>
+#include <fastdds/rtps/writer/RTPSWriter.hpp>
 
 #include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/reader/BaseReader.hpp>
 #include <rtps/DataSharing/DataSharingListener.hpp>
 #include <rtps/DataSharing/DataSharingNotifier.hpp>
 #include "rtps/RTPSDomainImpl.hpp"
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
+
+using BaseReader = fastdds::rtps::BaseReader;
 
 ReaderLocator::ReaderLocator(
         RTPSWriter* owner,
@@ -178,21 +182,22 @@ void ReaderLocator::stop()
 }
 
 bool ReaderLocator::send(
-        CDRMessage_t* message,
+        const std::vector<eprosima::fastdds::rtps::NetworkBuffer>& buffers,
+        const uint32_t& total_bytes,
         std::chrono::steady_clock::time_point max_blocking_time_point) const
 {
     if (general_locator_info_.remote_guid != c_Guid_Unknown && !is_local_reader_)
     {
         if (general_locator_info_.unicast.size() > 0)
         {
-            return participant_owner_->sendSync(message, owner_->getGuid(),
+            return participant_owner_->sendSync(buffers, total_bytes, owner_->getGuid(),
                            Locators(general_locator_info_.unicast.begin()), Locators(
                                general_locator_info_.unicast.end()),
                            max_blocking_time_point);
         }
         else
         {
-            return participant_owner_->sendSync(message, owner_->getGuid(),
+            return participant_owner_->sendSync(buffers, total_bytes, owner_->getGuid(),
                            Locators(general_locator_info_.multicast.begin()),
                            Locators(general_locator_info_.multicast.end()),
                            max_blocking_time_point);
@@ -226,7 +231,7 @@ void ReaderLocator::datasharing_notify()
 
     if (reader)
     {
-        reader->datasharing_listener()->notify(true);
+        BaseReader::downcast(reader)->datasharing_listener()->notify(true);
     }
     else
     {
@@ -235,5 +240,5 @@ void ReaderLocator::datasharing_notify()
 }
 
 } /* namespace rtps */
-} /* namespace fastrtps */
+} /* namespace fastdds */
 } /* namespace eprosima */

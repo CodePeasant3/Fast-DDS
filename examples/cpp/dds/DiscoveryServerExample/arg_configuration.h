@@ -25,7 +25,7 @@
 #include <string>
 
 #include <optionparser.hpp>
-#include <fastrtps/utils/IPLocator.h>
+#include <fastdds/utils/IPLocator.hpp>
 
 #include "common.h"
 
@@ -116,8 +116,8 @@ struct Arg : public option::Arg
             // we must check if it is a correct ip address plus port number
             std::string ip_str(option.arg);
             if (
-                eprosima::fastrtps::rtps::IPLocator::isIPv4(ip_str) ||
-                eprosima::fastrtps::rtps::IPLocator::isIPv6(ip_str))
+                eprosima::fastdds::rtps::IPLocator::isIPv4(ip_str) ||
+                eprosima::fastdds::rtps::IPLocator::isIPv6(ip_str))
             {
                 return option::ARG_OK;
             }

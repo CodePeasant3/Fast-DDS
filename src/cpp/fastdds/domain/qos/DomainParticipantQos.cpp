@@ -20,7 +20,7 @@
 #include <fastdds/dds/domain/qos/DomainParticipantQos.hpp>
 
 #include <fastdds/rtps/attributes/BuiltinTransports.hpp>
-#include <fastdds/rtps/attributes/RTPSParticipantAttributes.h>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
 #include <fastdds/utils/QosConverters.hpp>
 
 namespace eprosima {
@@ -33,7 +33,7 @@ void DomainParticipantQos::setup_transports(
         rtps::BuiltinTransports transports,
         const rtps::BuiltinTransportsOptions& options)
 {
-    fastrtps::rtps::RTPSParticipantAttributes attr;
+    rtps::RTPSParticipantAttributes attr;
     utils::set_attributes_from_qos(attr, *this);
 
     attr.setup_transports(transports, options);

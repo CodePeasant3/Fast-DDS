@@ -16,36 +16,38 @@
  * @file WLP.cpp
  *
  */
+
+#include <rtps/builtin/liveliness/WLP.hpp>
+
 #include <limits>
-
-#include <fastdds/rtps/builtin/liveliness/WLP.h>
-#include <fastdds/rtps/builtin/liveliness/WLPListener.h>
-#include <rtps/participant/RTPSParticipantImpl.h>
-#include <fastdds/rtps/writer/StatefulWriter.h>
-#include <fastdds/rtps/writer/LivelinessManager.h>
-#include <fastdds/rtps/writer/WriterListener.h>
-#include <fastdds/rtps/reader/StatefulReader.h>
-#include <fastdds/rtps/history/WriterHistory.h>
-#include <fastdds/rtps/history/ReaderHistory.h>
-#include <fastdds/rtps/resources/ResourceEvent.h>
-
-#include <fastdds/rtps/builtin/BuiltinProtocols.h>
-#include <fastdds/rtps/builtin/discovery/participant/PDPSimple.h>
-
-#include <fastdds/rtps/builtin/data/ParticipantProxyData.h>
-#include <fastdds/rtps/builtin/data/WriterProxyData.h>
-
-#include <fastdds/dds/log/Log.hpp>
-#include <fastrtps/utils/TimeConversion.h>
-#include <fastdds/rtps/resources/TimedEvent.h>
-
-#include <rtps/history/TopicPayloadPoolRegistry.hpp>
-
 #include <mutex>
 
+#include <fastdds/dds/log/Log.hpp>
+#include <fastdds/rtps/builtin/data/BuiltinEndpoints.hpp>
+#include <fastdds/rtps/builtin/data/ParticipantProxyData.hpp>
+#include <fastdds/rtps/builtin/data/WriterProxyData.hpp>
+#include <fastdds/rtps/history/ReaderHistory.hpp>
+#include <fastdds/rtps/history/WriterHistory.hpp>
+#include <fastdds/rtps/writer/WriterListener.hpp>
+
+#include <rtps/builtin/BuiltinProtocols.h>
+#include <rtps/builtin/discovery/participant/PDPSimple.h>
+#include <rtps/builtin/liveliness/WLPListener.h>
+#include <rtps/history/TopicPayloadPoolRegistry.hpp>
+#include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/reader/BaseReader.hpp>
+#include <rtps/reader/StatefulReader.hpp>
+#include <rtps/resources/ResourceEvent.h>
+#include <rtps/resources/TimedEvent.h>
+#include <rtps/writer/LivelinessManager.hpp>
+#include <rtps/writer/StatefulWriter.hpp>
+#include <utils/TimeConversion.hpp>
+
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
+
+using BaseReader = fastdds::rtps::BaseReader;
 
 static void set_builtin_reader_history_attributes(
         HistoryAttributes& hatt,
@@ -119,8 +121,8 @@ WLP::WLP(
     automatic_instance_handle_ = tmp_guid;
     manual_by_participant_instance_handle_ = automatic_instance_handle_;
 
-    automatic_instance_handle_.value[15] = AUTOMATIC_LIVELINESS_QOS + 0x01;
-    manual_by_participant_instance_handle_.value[15] = MANUAL_BY_PARTICIPANT_LIVELINESS_QOS + 0x01;
+    automatic_instance_handle_.value[15] = dds::AUTOMATIC_LIVELINESS_QOS + 0x01;
+    manual_by_participant_instance_handle_.value[15] = dds::MANUAL_BY_PARTICIPANT_LIVELINESS_QOS + 0x01;
 }
 
 WLP::~WLP()
@@ -190,7 +192,7 @@ bool WLP::initWL(
 
     pub_liveliness_manager_ = new LivelinessManager(
         [&](const GUID_t& guid,
-        const LivelinessQosPolicyKind& kind,
+        const dds::LivelinessQosPolicyKind& kind,
         const Duration_t& lease_duration,
         int alive_count,
         int not_alive_count) -> void
@@ -207,7 +209,7 @@ bool WLP::initWL(
 
     sub_liveliness_manager_ = new LivelinessManager(
         [&](const GUID_t& guid,
-        const LivelinessQosPolicyKind& kind,
+        const dds::LivelinessQosPolicyKind& kind,
         const Duration_t& lease_duration,
         int alive_count,
         int not_alive_count) -> void
@@ -239,11 +241,10 @@ bool WLP::createEndpoints()
     // Built-in writer history
     HistoryAttributes hatt;
     set_builtin_writer_history_attributes(hatt, false);
-    mp_builtinWriterHistory = new WriterHistory(hatt);
-
     PoolConfig writer_pool_cfg = PoolConfig::from_history_attributes(hatt);
     payload_pool_ = TopicPayloadPoolRegistry::get("DCPSParticipantMessage", writer_pool_cfg);
     payload_pool_->reserve_history(writer_pool_cfg, false);
+    mp_builtinWriterHistory = new WriterHistory(hatt, payload_pool_);
 
     // Built-in writer
     WriterAttributes watt;
@@ -260,7 +261,6 @@ bool WLP::createEndpoints()
     if (mp_participant->createWriter(
                 &wout,
                 watt,
-                payload_pool_,
                 mp_builtinWriterHistory,
                 nullptr,
                 c_EntityId_WriterLiveliness,
@@ -295,7 +295,7 @@ bool WLP::createEndpoints()
     ratt.endpoint.topicKind = WITH_KEY;
     ratt.endpoint.durabilityKind = TRANSIENT_LOCAL;
     ratt.endpoint.reliabilityKind = RELIABLE;
-    ratt.expectsInlineQos = true;
+    ratt.expects_inline_qos = true;
     ratt.endpoint.unicastLocatorList =  mp_builtinProtocols->m_metatrafficUnicastLocatorList;
     ratt.endpoint.multicastLocatorList = mp_builtinProtocols->m_metatrafficMulticastLocatorList;
     ratt.endpoint.external_unicast_locators = mp_builtinProtocols->m_att.metatraffic_external_unicast_locators;
@@ -340,11 +340,10 @@ bool WLP::createSecureEndpoints()
     //CREATE WRITER
     HistoryAttributes hatt;
     set_builtin_writer_history_attributes(hatt, true);
-    mp_builtinWriterSecureHistory = new WriterHistory(hatt);
-
     PoolConfig writer_pool_cfg = PoolConfig::from_history_attributes(hatt);
     secure_payload_pool_ = TopicPayloadPoolRegistry::get("DCPSParticipantMessageSecure", writer_pool_cfg);
     secure_payload_pool_->reserve_history(writer_pool_cfg, false);
+    mp_builtinWriterSecureHistory = new WriterHistory(hatt, secure_payload_pool_);
 
     WriterAttributes watt;
     watt.endpoint.unicastLocatorList = mp_builtinProtocols->m_metatrafficUnicastLocatorList;
@@ -377,7 +376,7 @@ bool WLP::createSecureEndpoints()
     }
 
     RTPSWriter* wout;
-    if (mp_participant->createWriter(&wout, watt, secure_payload_pool_, mp_builtinWriterSecureHistory, nullptr,
+    if (mp_participant->createWriter(&wout, watt, mp_builtinWriterSecureHistory, nullptr,
             c_EntityId_WriterLivelinessSecure, true))
     {
         mp_builtinWriterSecure = dynamic_cast<StatefulWriter*>(wout);
@@ -402,7 +401,7 @@ bool WLP::createSecureEndpoints()
     ratt.endpoint.topicKind = WITH_KEY;
     ratt.endpoint.durabilityKind = TRANSIENT_LOCAL;
     ratt.endpoint.reliabilityKind = RELIABLE;
-    ratt.expectsInlineQos = true;
+    ratt.expects_inline_qos = true;
     ratt.endpoint.unicastLocatorList = mp_builtinProtocols->m_metatrafficUnicastLocatorList;
     ratt.endpoint.multicastLocatorList = mp_builtinProtocols->m_metatrafficMulticastLocatorList;
     ratt.endpoint.external_unicast_locators = mp_builtinProtocols->m_att.metatraffic_external_unicast_locators;
@@ -494,18 +493,18 @@ bool WLP::assignRemoteEndpoints(
     temp_writer_proxy_data_.persistence_guid(pdata.get_persistence_guid());
     temp_writer_proxy_data_.set_remote_locators(pdata.metatraffic_locators, network, use_multicast_locators);
     temp_writer_proxy_data_.topicKind(WITH_KEY);
-    temp_writer_proxy_data_.m_qos.m_durability.kind = TRANSIENT_LOCAL_DURABILITY_QOS;
-    temp_writer_proxy_data_.m_qos.m_reliability.kind = RELIABLE_RELIABILITY_QOS;
+    temp_writer_proxy_data_.m_qos.m_durability.kind = dds::TRANSIENT_LOCAL_DURABILITY_QOS;
+    temp_writer_proxy_data_.m_qos.m_reliability.kind = dds::RELIABLE_RELIABILITY_QOS;
 
     temp_reader_proxy_data_.clear();
     temp_reader_proxy_data_.m_expectsInlineQos = false;
     temp_reader_proxy_data_.guid().guidPrefix = pdata.m_guid.guidPrefix;
     temp_reader_proxy_data_.set_remote_locators(pdata.metatraffic_locators, network, use_multicast_locators);
     temp_reader_proxy_data_.topicKind(WITH_KEY);
-    temp_reader_proxy_data_.m_qos.m_durability.kind = TRANSIENT_LOCAL_DURABILITY_QOS;
-    temp_reader_proxy_data_.m_qos.m_reliability.kind = RELIABLE_RELIABILITY_QOS;
+    temp_reader_proxy_data_.m_qos.m_durability.kind = dds::TRANSIENT_LOCAL_DURABILITY_QOS;
+    temp_reader_proxy_data_.m_qos.m_reliability.kind = dds::RELIABLE_RELIABILITY_QOS;
 
-    auxendp &= BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_DATA_WRITER;
+    auxendp &= fastdds::rtps::BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_DATA_WRITER;
     if (auxendp != 0 && this->mp_builtinReader != nullptr)
     {
         EPROSIMA_LOG_INFO(RTPS_LIVELINESS, "Adding remote writer to my local Builtin Reader");
@@ -514,7 +513,7 @@ bool WLP::assignRemoteEndpoints(
         mp_builtinReader->matched_writer_add(temp_writer_proxy_data_);
     }
     auxendp = endp;
-    auxendp &= BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_DATA_READER;
+    auxendp &= fastdds::rtps::BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_DATA_READER;
     if (auxendp != 0 && this->mp_builtinWriter != nullptr)
     {
         EPROSIMA_LOG_INFO(RTPS_LIVELINESS, "Adding remote reader to my local Builtin Writer");
@@ -524,7 +523,7 @@ bool WLP::assignRemoteEndpoints(
 
 #if HAVE_SECURITY
     auxendp = endp;
-    auxendp &= BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_SECURE_DATA_WRITER;
+    auxendp &= fastdds::rtps::BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_SECURE_DATA_WRITER;
     if (auxendp != 0 && this->mp_builtinReaderSecure != nullptr && assign_secure_endpoints)
     {
         EPROSIMA_LOG_INFO(RTPS_LIVELINESS, "Adding remote writer to my local Builtin Secure Reader");
@@ -540,7 +539,7 @@ bool WLP::assignRemoteEndpoints(
         }
     }
     auxendp = endp;
-    auxendp &= BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_SECURE_DATA_READER;
+    auxendp &= fastdds::rtps::BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_SECURE_DATA_READER;
     if (auxendp != 0 && this->mp_builtinWriterSecure != nullptr && assign_secure_endpoints)
     {
         EPROSIMA_LOG_INFO(RTPS_LIVELINESS, "Adding remote reader to my local Builtin Secure Writer");
@@ -570,8 +569,8 @@ void WLP::removeRemoteEndpoints(
     uint32_t endp = pdata->m_availableBuiltinEndpoints;
     uint32_t partdet = endp;
     uint32_t auxendp = endp;
-    partdet &= DISC_BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR; //Habria que quitar esta linea que comprueba si tiene PDP.
-    auxendp &= BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_DATA_WRITER;
+    partdet &= fastdds::rtps::DISC_BUILTIN_ENDPOINT_PARTICIPANT_DETECTOR;
+    auxendp &= fastdds::rtps::BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_DATA_WRITER;
 
     if ((auxendp != 0 || partdet != 0) && this->mp_builtinReader != nullptr)
     {
@@ -580,7 +579,7 @@ void WLP::removeRemoteEndpoints(
         mp_builtinReader->matched_writer_remove(tmp_guid);
     }
     auxendp = endp;
-    auxendp &= BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_DATA_READER;
+    auxendp &= fastdds::rtps::BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_DATA_READER;
     if ((auxendp != 0 || partdet != 0) && this->mp_builtinWriter != nullptr)
     {
         EPROSIMA_LOG_INFO(RTPS_LIVELINESS, "Removing remote reader from my local Builtin Writer");
@@ -590,7 +589,7 @@ void WLP::removeRemoteEndpoints(
 
 #if HAVE_SECURITY
     auxendp = endp;
-    auxendp &= BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_SECURE_DATA_WRITER;
+    auxendp &= fastdds::rtps::BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_SECURE_DATA_WRITER;
     if ((auxendp != 0 || partdet != 0) && this->mp_builtinReaderSecure != nullptr)
     {
         EPROSIMA_LOG_INFO(RTPS_LIVELINESS, "Removing remote writer from my local Builtin Secure Reader");
@@ -602,7 +601,7 @@ void WLP::removeRemoteEndpoints(
         }
     }
     auxendp = endp;
-    auxendp &= BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_SECURE_DATA_READER;
+    auxendp &= fastdds::rtps::BUILTIN_ENDPOINT_PARTICIPANT_MESSAGE_SECURE_DATA_READER;
     if ((auxendp != 0 || partdet != 0) && this->mp_builtinWriterSecure != nullptr)
     {
         EPROSIMA_LOG_INFO(RTPS_LIVELINESS, "Removing remote reader from my local Builtin Secure Writer");
@@ -618,14 +617,15 @@ void WLP::removeRemoteEndpoints(
 
 bool WLP::add_local_writer(
         RTPSWriter* W,
-        const WriterQos& wqos)
+        const fastdds::dds::WriterQos& wqos)
 {
     std::lock_guard<std::recursive_mutex> guard(*mp_builtinProtocols->mp_PDP->getMutex());
     EPROSIMA_LOG_INFO(RTPS_LIVELINESS, W->getGuid().entityId << " to Liveliness Protocol");
 
-    double wAnnouncementPeriodMilliSec(TimeConv::Duration_t2MilliSecondsDouble(wqos.m_liveliness.announcement_period));
+    double wAnnouncementPeriodMilliSec(fastdds::rtps::TimeConv::Duration_t2MilliSecondsDouble(wqos.m_liveliness.
+                    announcement_period));
 
-    if (wqos.m_liveliness.kind == AUTOMATIC_LIVELINESS_QOS )
+    if (wqos.m_liveliness.kind == dds::AUTOMATIC_LIVELINESS_QOS )
     {
         if (automatic_liveliness_assertion_ == nullptr)
         {
@@ -652,7 +652,7 @@ bool WLP::add_local_writer(
         }
         automatic_writers_.push_back(W);
     }
-    else if (wqos.m_liveliness.kind == MANUAL_BY_PARTICIPANT_LIVELINESS_QOS)
+    else if (wqos.m_liveliness.kind == dds::MANUAL_BY_PARTICIPANT_LIVELINESS_QOS)
     {
         if (manual_liveliness_assertion_ == nullptr)
         {
@@ -687,7 +687,7 @@ bool WLP::add_local_writer(
             EPROSIMA_LOG_ERROR(RTPS_LIVELINESS, "Could not add writer " << W->getGuid() << " to liveliness manager");
         }
     }
-    else if (wqos.m_liveliness.kind == MANUAL_BY_TOPIC_LIVELINESS_QOS)
+    else if (wqos.m_liveliness.kind == dds::MANUAL_BY_TOPIC_LIVELINESS_QOS)
     {
         manual_by_topic_writers_.push_back(W);
 
@@ -712,7 +712,9 @@ bool WLP::remove_local_writer(
 
     EPROSIMA_LOG_INFO(RTPS_LIVELINESS, W->getGuid().entityId << " from Liveliness Protocol");
 
-    if (W->get_liveliness_kind() == AUTOMATIC_LIVELINESS_QOS)
+    LivelinessData::WriterStatus writer_status;
+
+    if (W->get_liveliness_kind() == dds::AUTOMATIC_LIVELINESS_QOS)
     {
         auto it = std::find(
             automatic_writers_.begin(),
@@ -737,7 +739,8 @@ bool WLP::remove_local_writer(
         // There are still some writers. Calculate the new minimum announcement period
         for (const auto& w : automatic_writers_)
         {
-            auto announcement_period = TimeConv::Duration_t2MilliSecondsDouble(w->get_liveliness_announcement_period());
+            auto announcement_period = fastdds::rtps::TimeConv::Duration_t2MilliSecondsDouble(
+                w->get_liveliness_announcement_period());
             if (min_automatic_ms_ > announcement_period)
             {
                 min_automatic_ms_ = announcement_period;
@@ -746,7 +749,7 @@ bool WLP::remove_local_writer(
         automatic_liveliness_assertion_->update_interval_millisec(min_automatic_ms_);
         return true;
     }
-    else if (W->get_liveliness_kind() == MANUAL_BY_PARTICIPANT_LIVELINESS_QOS)
+    else if (W->get_liveliness_kind() == dds::MANUAL_BY_PARTICIPANT_LIVELINESS_QOS)
     {
         auto it = std::find(
             manual_by_participant_writers_.begin(),
@@ -764,7 +767,8 @@ bool WLP::remove_local_writer(
         if (!pub_liveliness_manager_->remove_writer(
                     W->getGuid(),
                     W->get_liveliness_kind(),
-                    W->get_liveliness_lease_duration()))
+                    W->get_liveliness_lease_duration(),
+                    writer_status))
         {
             EPROSIMA_LOG_ERROR(RTPS_LIVELINESS,
                     "Could not remove writer " << W->getGuid() << " from liveliness manager");
@@ -780,7 +784,8 @@ bool WLP::remove_local_writer(
         // There are still some writers. Calculate the new minimum announcement period
         for (const auto& w : manual_by_participant_writers_)
         {
-            auto announcement_period = TimeConv::Duration_t2MilliSecondsDouble(w->get_liveliness_announcement_period());
+            auto announcement_period = fastdds::rtps::TimeConv::Duration_t2MilliSecondsDouble(
+                w->get_liveliness_announcement_period());
             if (min_manual_by_participant_ms_ > announcement_period)
             {
                 min_manual_by_participant_ms_ = announcement_period;
@@ -789,7 +794,7 @@ bool WLP::remove_local_writer(
         manual_liveliness_assertion_->update_interval_millisec(min_manual_by_participant_ms_);
         return true;
     }
-    else if (W->get_liveliness_kind() == MANUAL_BY_TOPIC_LIVELINESS_QOS)
+    else if (W->get_liveliness_kind() == dds::MANUAL_BY_TOPIC_LIVELINESS_QOS)
     {
         auto it = std::find(
             manual_by_topic_writers_.begin(),
@@ -807,7 +812,8 @@ bool WLP::remove_local_writer(
         if (!pub_liveliness_manager_->remove_writer(
                     W->getGuid(),
                     W->get_liveliness_kind(),
-                    W->get_liveliness_lease_duration()))
+                    W->get_liveliness_lease_duration(),
+                    writer_status))
         {
             EPROSIMA_LOG_ERROR(RTPS_LIVELINESS,
                     "Could not remove writer " << W->getGuid() << " from liveliness manager");
@@ -821,16 +827,18 @@ bool WLP::remove_local_writer(
 
 bool WLP::add_local_reader(
         RTPSReader* reader,
-        const ReaderQos& rqos)
+        const fastdds::dds::ReaderQos& rqos)
 {
+    auto base_reader = BaseReader::downcast(reader);
+
     std::lock_guard<std::recursive_mutex> guard(*mp_builtinProtocols->mp_PDP->getMutex());
 
-    if (rqos.m_liveliness.kind == AUTOMATIC_LIVELINESS_QOS)
+    if (rqos.m_liveliness.kind == dds::AUTOMATIC_LIVELINESS_QOS)
     {
         automatic_readers_ = true;
     }
 
-    readers_.push_back(reader);
+    readers_.push_back(base_reader);
 
     return true;
 }
@@ -838,12 +846,13 @@ bool WLP::add_local_reader(
 bool WLP::remove_local_reader(
         RTPSReader* reader)
 {
+    auto base_reader = BaseReader::downcast(reader);
     std::lock_guard<std::recursive_mutex> guard(*mp_builtinProtocols->mp_PDP->getMutex());
 
     auto it = std::find(
         readers_.begin(),
         readers_.end(),
-        reader);
+        base_reader);
     if (it != readers_.end())
     {
         readers_.erase(it);
@@ -872,7 +881,7 @@ bool WLP::participant_liveliness_assertion()
 
     if (0 < manual_by_participant_writers_.size())
     {
-        if (pub_liveliness_manager_->is_any_alive(MANUAL_BY_PARTICIPANT_LIVELINESS_QOS))
+        if (pub_liveliness_manager_->is_any_alive(dds::MANUAL_BY_PARTICIPANT_LIVELINESS_QOS))
         {
             lock.unlock();
             return send_liveliness_message(manual_by_participant_instance_handle_);
@@ -887,17 +896,11 @@ bool WLP::send_liveliness_message(
 {
     StatefulWriter* writer = builtin_writer();
     WriterHistory* history = builtin_writer_history();
+    std::shared_ptr<IPayloadPool> pool = builtin_writer_pool();
 
     std::lock_guard<RecursiveTimedMutex> wguard(writer->getMutex());
 
-    CacheChange_t* change = writer->new_change(
-        []() -> uint32_t
-        {
-            return BUILTIN_PARTICIPANT_DATA_MAX_SIZE;
-        },
-        ALIVE,
-        instance);
-
+    CacheChange_t* change = history->create_change(WLP::builtin_participant_data_max_size, ALIVE, instance);
     if (change != nullptr)
     {
         change->serializedPayload.encapsulation = (uint16_t)DEFAULT_ENCAPSULATION;
@@ -959,9 +962,21 @@ WriterHistory* WLP::builtin_writer_history()
     return ret_val;
 }
 
+std::shared_ptr<IPayloadPool> WLP::builtin_writer_pool()
+{
+#if HAVE_SECURITY
+    if (mp_participant->security_attributes().is_liveliness_protected)
+    {
+        return secure_payload_pool_;
+    }
+#endif // if HAVE_SECURITY
+
+    return payload_pool_;
+}
+
 bool WLP::assert_liveliness(
         GUID_t writer,
-        LivelinessQosPolicyKind kind,
+        dds::LivelinessQosPolicyKind kind,
         Duration_t lease_duration)
 {
     return pub_liveliness_manager_->assert_liveliness(
@@ -975,7 +990,7 @@ bool WLP::assert_liveliness_manual_by_participant()
     if (manual_by_participant_writers_.size() > 0)
     {
         return pub_liveliness_manager_->assert_liveliness(
-            MANUAL_BY_PARTICIPANT_LIVELINESS_QOS,
+            dds::MANUAL_BY_PARTICIPANT_LIVELINESS_QOS,
             mp_participant->getGuid().guidPrefix);
     }
     return false;
@@ -983,7 +998,7 @@ bool WLP::assert_liveliness_manual_by_participant()
 
 void WLP::pub_liveliness_changed(
         const GUID_t& writer,
-        const LivelinessQosPolicyKind& kind,
+        const dds::LivelinessQosPolicyKind& kind,
         const Duration_t& lease_duration,
         int32_t alive_change,
         int32_t not_alive_change)
@@ -997,7 +1012,7 @@ void WLP::pub_liveliness_changed(
         return;
     }
 
-    if (kind == AUTOMATIC_LIVELINESS_QOS)
+    if (kind == dds::AUTOMATIC_LIVELINESS_QOS)
     {
         for (RTPSWriter* w: automatic_writers_)
         {
@@ -1017,7 +1032,7 @@ void WLP::pub_liveliness_changed(
             }
         }
     }
-    else if (kind == MANUAL_BY_PARTICIPANT_LIVELINESS_QOS)
+    else if (kind == dds::MANUAL_BY_PARTICIPANT_LIVELINESS_QOS)
     {
         for (RTPSWriter* w: manual_by_participant_writers_)
         {
@@ -1037,7 +1052,7 @@ void WLP::pub_liveliness_changed(
             }
         }
     }
-    else if (kind == MANUAL_BY_TOPIC_LIVELINESS_QOS)
+    else if (kind == dds::MANUAL_BY_TOPIC_LIVELINESS_QOS)
     {
         for (RTPSWriter* w: manual_by_topic_writers_)
         {
@@ -1061,17 +1076,17 @@ void WLP::pub_liveliness_changed(
 
 void WLP::sub_liveliness_changed(
         const GUID_t& writer,
-        const LivelinessQosPolicyKind& kind,
+        const dds::LivelinessQosPolicyKind& kind,
         const Duration_t& lease_duration,
         int32_t alive_change,
         int32_t not_alive_change)
 {
     // Writer with given guid lost liveliness, check which readers were matched and inform them
 
-    for (RTPSReader* reader : readers_)
+    for (BaseReader* reader : readers_)
     {
-        if (reader->liveliness_kind_ == kind &&
-                reader->liveliness_lease_duration_ == lease_duration)
+        if (reader->liveliness_kind() == kind &&
+                reader->liveliness_lease_duration() == lease_duration)
         {
             if (reader->matched_writer_is_matched(writer))
             {
@@ -1087,27 +1102,13 @@ void WLP::sub_liveliness_changed(
 
 void WLP::update_liveliness_changed_status(
         GUID_t writer,
-        RTPSReader* reader,
+        BaseReader* reader,
         int32_t alive_change,
         int32_t not_alive_change)
 {
-    std::lock_guard<RecursiveTimedMutex> lock(reader->getMutex());
-
-    reader->liveliness_changed_status_.alive_count += alive_change;
-    reader->liveliness_changed_status_.alive_count_change += alive_change;
-    reader->liveliness_changed_status_.not_alive_count += not_alive_change;
-    reader->liveliness_changed_status_.not_alive_count_change += not_alive_change;
-    reader->liveliness_changed_status_.last_publication_handle = writer;
-
-    if (reader->getListener() != nullptr)
-    {
-        reader->getListener()->on_liveliness_changed(reader, reader->liveliness_changed_status_);
-
-        reader->liveliness_changed_status_.alive_count_change = 0;
-        reader->liveliness_changed_status_.not_alive_count_change = 0;
-    }
+    reader->update_liveliness_changed_status(writer, alive_change, not_alive_change);
 }
 
 } /* namespace rtps */
-} /* namespace fastrtps */
+} /* namespace fastdds */
 } /* namespace eprosima */

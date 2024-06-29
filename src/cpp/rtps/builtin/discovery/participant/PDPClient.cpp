@@ -18,6 +18,7 @@
  */
 
 #include <rtps/builtin/discovery/participant/PDPClient.h>
+#include <rtps/builtin/discovery/participant/PDPClientListener.hpp>
 
 #include <algorithm>
 #include <forward_list>
@@ -25,43 +26,42 @@
 #include <sstream>
 #include <string>
 #include <tuple>
+#include <vector>
 
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/attributes/RTPSParticipantAttributes.h>
-#include <fastdds/rtps/builtin/BuiltinProtocols.h>
-#include <fastdds/rtps/builtin/discovery/participant/PDPListener.h>
-#include <fastdds/rtps/builtin/liveliness/WLP.h>
-#include <fastdds/rtps/history/ReaderHistory.h>
-#include <fastdds/rtps/history/WriterHistory.h>
-#include <fastdds/rtps/participant/RTPSParticipantListener.h>
-#include <fastdds/rtps/reader/StatefulReader.h>
-#include <fastdds/rtps/writer/ReaderProxy.h>
-#include <fastdds/rtps/writer/StatefulWriter.h>
-#include <fastrtps/utils/TimeConversion.h>
-#include <fastrtps/utils/shared_mutex.hpp>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
+#include <fastdds/rtps/history/ReaderHistory.hpp>
+#include <fastdds/rtps/history/WriterHistory.hpp>
+#include <fastdds/rtps/participant/RTPSParticipantListener.hpp>
+#include <fastdds/builtin/type_lookup_service/TypeLookupManager.hpp>
+
+#include <rtps/builtin/BuiltinProtocols.h>
 #include <rtps/builtin/discovery/endpoint/EDPClient.h>
 #include <rtps/builtin/discovery/participant/DirectMessageSender.hpp>
 #include <rtps/builtin/discovery/participant/DS/FakeWriter.hpp>
 #include <rtps/builtin/discovery/participant/DS/PDPSecurityInitiatorListener.hpp>
+#include <rtps/builtin/discovery/participant/PDPListener.h>
 #include <rtps/builtin/discovery/participant/timedevent/DSClientEvent.h>
+#include <rtps/builtin/liveliness/WLP.hpp>
 #include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/reader/BaseReader.hpp>
+#include <rtps/reader/StatefulReader.hpp>
+#include <rtps/writer/ReaderProxy.hpp>
+#include <rtps/writer/StatefulWriter.hpp>
+#include <utils/shared_mutex.hpp>
 #include <utils/SystemInfo.hpp>
-#include <vector>
-
-using namespace eprosima::fastrtps;
+#include <utils/TimeConversion.hpp>
 
 namespace eprosima {
 namespace fastdds {
 namespace rtps {
 
-using namespace fastrtps::rtps;
-
 static void direct_send(
         RTPSParticipantImpl* participant,
         LocatorList& locators,
         std::vector<GUID_t>& remote_readers,
-        const CacheChange_t& change,
-        fastrtps::rtps::Endpoint& sender_endpt)
+        CacheChange_t& change,
+        fastdds::rtps::Endpoint& sender_endpt)
 {
     DirectMessageSender sender(participant, &remote_readers, &locators);
     RTPSMessageGroup group(participant, &sender_endpt, &sender);
@@ -74,7 +74,7 @@ static void direct_send(
 static void direct_send(
         RTPSParticipantImpl* participant,
         LocatorList& locators,
-        const CacheChange_t& change)
+        CacheChange_t& change)
 {
     FakeWriter writer(participant, c_EntityId_SPDPWriter);
     std::vector<GUID_t> remote_readers;
@@ -107,10 +107,10 @@ void PDPClient::initializeParticipantProxyData(
 
     if (
         getRTPSParticipant()->getAttributes().builtin.discovery_config.discoveryProtocol
-        != DiscoveryProtocol_t::CLIENT
+        != DiscoveryProtocol::CLIENT
         &&
         getRTPSParticipant()->getAttributes().builtin.discovery_config.discoveryProtocol
-        != DiscoveryProtocol_t::SUPER_CLIENT    )
+        != DiscoveryProtocol::SUPER_CLIENT    )
     {
         EPROSIMA_LOG_ERROR(RTPS_PDP, "Using a PDP client object with another user's settings");
     }
@@ -266,7 +266,7 @@ bool PDPClient::create_ds_pdp_best_effort_reader(
     endpoints.stateless_reader.history_.reset(new ReaderHistory(hatt));
 
     ReaderAttributes ratt;
-    ratt.expectsInlineQos = false;
+    ratt.expects_inline_qos = false;
     ratt.endpoint.endpointKind = READER;
     ratt.endpoint.multicastLocatorList = mp_builtin->m_metatrafficMulticastLocatorList;
     ratt.endpoint.unicastLocatorList = mp_builtin->m_metatrafficUnicastLocatorList;
@@ -285,7 +285,7 @@ bool PDPClient::create_ds_pdp_best_effort_reader(
     if (mp_RTPSParticipant->createReader(&reader, ratt, endpoints.stateless_reader.history_.get(),
             endpoints.stateless_reader.listener_.get(), c_EntityId_SPDPReader, true, false))
     {
-        endpoints.stateless_reader.reader_ = dynamic_cast<fastrtps::rtps::StatelessReader*>(reader);
+        endpoints.stateless_reader.reader_ = dynamic_cast<fastdds::rtps::StatelessReader*>(reader);
         mp_RTPSParticipant->set_endpoint_rtps_protection_supports(reader, false);
     }
     // Could not create PDP Reader, so return false
@@ -335,7 +335,7 @@ bool PDPClient::create_ds_pdp_reliable_endpoints(
     endpoints.reader.history_.reset(new ReaderHistory(hatt));
 
     ReaderAttributes ratt;
-    ratt.expectsInlineQos = false;
+    ratt.expects_inline_qos = false;
     ratt.endpoint.endpointKind = READER;
     ratt.endpoint.multicastLocatorList = mp_builtin->m_metatrafficMulticastLocatorList;
     ratt.endpoint.unicastLocatorList = mp_builtin->m_metatrafficUnicastLocatorList;
@@ -344,7 +344,7 @@ bool PDPClient::create_ds_pdp_reliable_endpoints(
     ratt.endpoint.topicKind = WITH_KEY;
     ratt.endpoint.durabilityKind = TRANSIENT_LOCAL;
     ratt.endpoint.reliabilityKind = RELIABLE;
-    ratt.times.heartbeatResponseDelay = pdp_heartbeat_response_delay;
+    ratt.times.heartbeat_response_delay = pdp_heartbeat_response_delay;
 #if HAVE_SECURITY
     if (is_discovery_protected)
     {
@@ -354,7 +354,7 @@ bool PDPClient::create_ds_pdp_reliable_endpoints(
     }
 #endif // HAVE_SECURITY
 
-    endpoints.reader.listener_.reset(new PDPListener(this));
+    endpoints.reader.listener_.reset(new PDPClientListener(this));
 
     RTPSReader* reader = nullptr;
 #if HAVE_SECURITY
@@ -367,7 +367,7 @@ bool PDPClient::create_ds_pdp_reliable_endpoints(
             endpoints.reader.listener_.get(),
             reader_entity, true, false))
     {
-        endpoints.reader.reader_ = dynamic_cast<fastrtps::rtps::StatefulReader*>(reader);
+        endpoints.reader.reader_ = dynamic_cast<fastdds::rtps::StatefulReader*>(reader);
 
 #if HAVE_SECURITY
         mp_RTPSParticipant->set_endpoint_rtps_protection_supports(reader, false);
@@ -411,9 +411,11 @@ bool PDPClient::create_ds_pdp_reliable_endpoints(
     }
 #endif // HAVE_SECURITY
 
-    if (pattr.throughputController.bytesPerPeriod != UINT32_MAX && pattr.throughputController.periodMillisecs != 0)
+    // We assume that if we have at least one flow controller defined, we use async flow controller
+    if (!pattr.flow_controllers.empty())
     {
         watt.mode = ASYNCHRONOUS_WRITER;
+        watt.flow_controller_name = fastdds::rtps::async_flow_controller_name;
     }
 
     RTPSWriter* wout = nullptr;
@@ -425,7 +427,7 @@ bool PDPClient::create_ds_pdp_reliable_endpoints(
 #endif // if HAVE_SECURITY
     if (mp_RTPSParticipant->createWriter(&wout, watt, endpoints.writer.history_.get(), nullptr, writer_entity, true))
     {
-        endpoints.writer.writer_ = dynamic_cast<fastrtps::rtps::StatefulWriter*>(wout);
+        endpoints.writer.writer_ = dynamic_cast<fastdds::rtps::StatefulWriter*>(wout);
 
 #if HAVE_SECURITY
         mp_RTPSParticipant->set_endpoint_rtps_protection_supports(wout, false);
@@ -457,7 +459,7 @@ bool PDPClient::create_ds_pdp_reliable_endpoints(
             }
             else if (!is_discovery_protected)
             {
-                endpoints.reader.reader_->enableMessagesFromUnkownWriters(true);
+                BaseReader::downcast(endpoints.reader.reader_)->allow_unknown_writers();
             }
 #else
             if (!is_discovery_protected)
@@ -575,6 +577,8 @@ void PDPClient::perform_builtin_endpoints_matching(
     {
         mp_builtin->mp_WLP->assignRemoteEndpoints(pdata, true);
     }
+
+    mp_builtin->typelookup_manager_->assign_remote_endpoints(pdata);
 }
 
 void PDPClient::removeRemoteEndpoints(
@@ -632,8 +636,8 @@ void PDPClient::removeRemoteEndpoints(
                 temp_writer_data->persistence_guid(pdata->get_persistence_guid());
                 temp_writer_data->set_persistence_entity_id(c_EntityId_SPDPWriter);
                 temp_writer_data->set_remote_locators(pdata->metatraffic_locators, network, true);
-                temp_writer_data->m_qos.m_reliability.kind = RELIABLE_RELIABILITY_QOS;
-                temp_writer_data->m_qos.m_durability.kind = TRANSIENT_DURABILITY_QOS;
+                temp_writer_data->m_qos.m_reliability.kind = dds::RELIABLE_RELIABILITY_QOS;
+                temp_writer_data->m_qos.m_durability.kind = dds::TRANSIENT_DURABILITY_QOS;
                 endpoints->reader.reader_->matched_writer_add(*temp_writer_data);
             }
         }
@@ -658,8 +662,8 @@ void PDPClient::removeRemoteEndpoints(
                 temp_reader_data->m_expectsInlineQos = false;
                 temp_reader_data->guid(rguid);
                 temp_reader_data->set_remote_locators(pdata->metatraffic_locators, network, true);
-                temp_reader_data->m_qos.m_reliability.kind = RELIABLE_RELIABILITY_QOS;
-                temp_reader_data->m_qos.m_durability.kind = TRANSIENT_LOCAL_DURABILITY_QOS;
+                temp_reader_data->m_qos.m_reliability.kind = dds::RELIABLE_RELIABILITY_QOS;
+                temp_reader_data->m_qos.m_durability.kind = dds::TRANSIENT_LOCAL_DURABILITY_QOS;
                 endpoints->writer.writer_->matched_reader_add(*temp_reader_data);
             }
         }
@@ -693,7 +697,7 @@ bool PDPClient::is_all_servers_PDPdata_updated()
     // Assess all server DATA has been received
     auto endpoints = static_cast<fastdds::rtps::DiscoveryServerPDPEndpoints*>(builtin_endpoints_.get());
     assert(endpoints->reader.reader_);
-    return endpoints->reader.reader_->isInCleanState();
+    return endpoints->reader.reader_->is_in_clean_state();
 }
 
 void PDPClient::announceParticipantState(
@@ -704,7 +708,7 @@ void PDPClient::announceParticipantState(
     if (enabled_)
     {
         auto endpoints = static_cast<fastdds::rtps::DiscoveryServerPDPEndpoints*>(builtin_endpoints_.get());
-        fastrtps::rtps::StatefulWriter& writer = *(endpoints->writer.writer_);
+        fastdds::rtps::StatefulWriter& writer = *(endpoints->writer.writer_);
         WriterHistory& history = *endpoints->writer.history_;
 
         /*
@@ -735,13 +739,12 @@ void PDPClient::announceParticipantState(
             // In order to avoid that we send the message directly as in the standard stateless PDP
 
             CacheChange_t* change = nullptr;
+            change = history.create_change(
+                mp_builtin->m_att.writerPayloadSize,
+                NOT_ALIVE_DISPOSED_UNREGISTERED,
+                getLocalParticipantProxyData()->m_key);
 
-            if ((change = writer.new_change(
-                        [this]() -> uint32_t
-                        {
-                            return mp_builtin->m_att.writerPayloadSize;
-                        },
-                        NOT_ALIVE_DISPOSED_UNREGISTERED, getLocalParticipantProxyData()->m_key)))
+            if (nullptr != change)
             {
                 // update the sequence number
                 change->sequenceNumber = history.next_sequence_number();
@@ -784,11 +787,11 @@ void PDPClient::announceParticipantState(
             }
 
             // free change
-            writer.release_change(change);
+            history.release_change(change);
         }
         else
         {
-            PDP::announceParticipantState(writer, history, new_change, dispose, wp);
+            PDP::announceParticipantState(history, new_change, dispose, wp);
 
             if (!new_change)
             {
@@ -884,8 +887,8 @@ void PDPClient::match_pdp_writer_nts_(
     temp_writer_data->guid({ prefix_override, endpoints->writer.writer_->getGuid().entityId });
     temp_writer_data->set_multicast_locators(server_att.metatrafficMulticastLocatorList, network);
     temp_writer_data->set_remote_unicast_locators(server_att.metatrafficUnicastLocatorList, network);
-    temp_writer_data->m_qos.m_durability.kind = TRANSIENT_DURABILITY_QOS;
-    temp_writer_data->m_qos.m_reliability.kind = RELIABLE_RELIABILITY_QOS;
+    temp_writer_data->m_qos.m_durability.kind = dds::TRANSIENT_DURABILITY_QOS;
+    temp_writer_data->m_qos.m_reliability.kind = dds::RELIABLE_RELIABILITY_QOS;
 #if HAVE_SECURITY
     if (should_protect_discovery())
     {
@@ -918,8 +921,8 @@ void PDPClient::match_pdp_reader_nts_(
     temp_reader_data->guid({ prefix_override, endpoints->reader.reader_->getGuid().entityId });
     temp_reader_data->set_multicast_locators(server_att.metatrafficMulticastLocatorList, network);
     temp_reader_data->set_remote_unicast_locators(server_att.metatrafficUnicastLocatorList, network);
-    temp_reader_data->m_qos.m_durability.kind = TRANSIENT_LOCAL_DURABILITY_QOS;
-    temp_reader_data->m_qos.m_reliability.kind = RELIABLE_RELIABILITY_QOS;
+    temp_reader_data->m_qos.m_durability.kind = dds::TRANSIENT_LOCAL_DURABILITY_QOS;
+    temp_reader_data->m_qos.m_reliability.kind = dds::RELIABLE_RELIABILITY_QOS;
 #if HAVE_SECURITY
     if (should_protect_discovery())
     {

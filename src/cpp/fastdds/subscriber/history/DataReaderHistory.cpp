@@ -26,22 +26,23 @@
 #include <fastdds/dds/topic/TypeSupport.hpp>
 
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/reader/RTPSReader.h>
+#include <fastdds/rtps/reader/RTPSReader.hpp>
 
 #include <fastdds/subscriber/DataReaderImpl/ReadTakeCommand.hpp>
 
 #include <rtps/common/ChangeComparison.hpp>
+#include <rtps/reader/BaseReader.hpp>
 #include <rtps/reader/WriterProxy.h>
 #include <utils/collections/sorted_vector_insert.hpp>
 
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds::rtps;
 
 namespace eprosima {
 namespace fastdds {
 namespace dds {
 namespace detail {
 
-using eprosima::fastrtps::RecursiveTimedMutex;
+using fastdds::RecursiveTimedMutex;
 
 static HistoryAttributes to_history_attributes(
         const TypeSupport& type,
@@ -356,9 +357,22 @@ bool DataReaderHistory::get_first_untaken_info(
     for (auto& it : data_available_instances_)
     {
         auto& instance_changes = it.second->cache_changes;
-        if (!instance_changes.empty())
+        for (auto& instance_change : instance_changes)
         {
-            ReadTakeCommand::generate_info(info, *(it.second), instance_changes.front());
+            WriterProxy* wp = nullptr;
+            bool is_future_change = false;
+
+            auto base_reader = rtps::BaseReader::downcast(mp_reader);
+            if (base_reader->begin_sample_access_nts(instance_change, wp, is_future_change))
+            {
+                base_reader->end_sample_access_nts(instance_change, wp, false);
+                if (is_future_change)
+                {
+                    continue;
+                }
+            }
+
+            ReadTakeCommand::generate_info(info, *(it.second), instance_change);
             return true;
         }
     }

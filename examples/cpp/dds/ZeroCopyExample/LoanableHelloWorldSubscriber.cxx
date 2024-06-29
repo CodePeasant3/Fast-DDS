@@ -26,7 +26,7 @@
 #include <fastdds/dds/subscriber/qos/DataReaderQos.hpp>
 
 #include "LoanableHelloWorldSubscriber.h"
-#include "LoanableHelloWorldPubSubTypes.h"
+#include "LoanableHelloWorldPubSubTypes.hpp"
 
 using namespace eprosima::fastdds::dds;
 
@@ -130,7 +130,7 @@ void LoanableHelloWorldSubscriber::SubListener::on_data_available(
 
     DataSeq data;
     SampleInfoSeq infos;
-    while (ReturnCode_t::RETCODE_OK == reader->take(data, infos))
+    while (RETCODE_OK == reader->take(data, infos))
     {
         for (LoanableCollection::size_type i = 0; i < infos.length(); ++i)
         {

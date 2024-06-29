@@ -28,7 +28,7 @@
 #include <fastdds/dds/domain/DomainParticipant.hpp>
 #include <fastdds/dds/domain/DomainParticipantListener.hpp>
 
-#include "types/HelloWorldPubSubTypes.h"
+#include "types/HelloWorldPubSubTypes.hpp"
 #include "common.h"
 
 /**
@@ -108,7 +108,8 @@ private:
         //! Callback executed when a DomainParticipant is discovered, dropped or removed
         void on_participant_discovery(
                 eprosima::fastdds::dds::DomainParticipant* /*participant*/,
-                eprosima::fastrtps::rtps::ParticipantDiscoveryInfo&& info) override;
+                eprosima::fastdds::rtps::ParticipantDiscoveryInfo&& info,
+                bool& should_be_ignored) override;
 
     private:
 

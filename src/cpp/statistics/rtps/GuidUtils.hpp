@@ -19,11 +19,11 @@
 #ifndef _STATISTICS_RTPS_GUIDUTILS_HPP_
 #define _STATISTICS_RTPS_GUIDUTILS_HPP_
 
-#include <fastrtps/config.h>
+#include <fastdds/config.hpp>
 
 #include <fastdds/rtps/common/EntityId_t.hpp>
 
-#include <statistics/types/types.h>
+#include <statistics/types/types.hpp>
 
 namespace eprosima {
 namespace fastdds {
@@ -35,7 +35,7 @@ namespace statistics {
  * @return true when the entity id corresponds to a builtin statistics writer.
  */
 inline bool is_statistics_builtin(
-        const fastrtps::rtps::EntityId_t& entity_id)
+        const fastdds::rtps::EntityId_t& entity_id)
 {
     return 0x60 == (0xE0 & entity_id.value[3]);
 }
@@ -46,8 +46,8 @@ inline bool is_statistics_builtin(
  * @param [out] entity_id The corresponding entity id.
  */
 inline void set_statistics_entity_id(
-        EventKind kind,
-        fastrtps::rtps::EntityId_t& entity_id)
+        uint32_t kind,
+        fastdds::rtps::EntityId_t& entity_id)
 {
     entity_id.value[3] = 0x62;
     entity_id.value[2] = kind & 0xFF;

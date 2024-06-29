@@ -16,14 +16,16 @@
 #include <mutex>
 #include <vector>
 
-#include <fastdds/dds/domain/DomainParticipantFactory.hpp>
+#include "CalculatorPubSubTypes.hpp"
+
 #include <fastdds/dds/domain/DomainParticipant.hpp>
-#include <fastdds/dds/publisher/Publisher.hpp>
+#include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/publisher/DataWriter.hpp>
-#include <fastdds/dds/subscriber/Subscriber.hpp>
+#include <fastdds/dds/publisher/Publisher.hpp>
 #include <fastdds/dds/subscriber/DataReader.hpp>
-#include <fastrtps/subscriber/SampleInfo.h>
-#include "CalculatorPubSubTypes.h"
+#include <fastdds/dds/subscriber/SampleInfo.hpp>
+#include <fastdds/dds/subscriber/Subscriber.hpp>
+#include <fastdds/rtps/common/WriteParams.hpp>
 
 class CalculatorServer
 {
@@ -68,7 +70,7 @@ class CalculatorServer
                         reply.z(request.x() / request.y());
                     }
                 }
-                eprosima::fastrtps::rtps::WriteParams write_params;
+                eprosima::fastdds::rtps::WriteParams write_params;
                 write_params.related_sample_identity().writer_guid(sample_info.sample_identity.writer_guid());
                 write_params.related_sample_identity().sequence_number(sample_info.sample_identity.sequence_number());
                 writer_->write(reinterpret_cast<void*>(&reply), write_params);

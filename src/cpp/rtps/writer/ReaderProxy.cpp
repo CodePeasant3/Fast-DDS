@@ -17,27 +17,27 @@
  *
  */
 
-
-#include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/history/WriterHistory.h>
-#include <fastdds/rtps/writer/ReaderProxy.h>
-#include <fastdds/rtps/writer/StatefulWriter.h>
-#include <fastdds/rtps/resources/TimedEvent.h>
-#include <fastrtps/utils/TimeConversion.h>
-#include <fastdds/rtps/common/LocatorListComparisons.hpp>
-
-#include <rtps/participant/RTPSParticipantImpl.h>
-#include <rtps/history/HistoryAttributesExtension.hpp>
-
-#include "rtps/messages/RTPSGapBuilder.hpp"
-#include <rtps/DataSharing/DataSharingNotifier.hpp>
+#include <rtps/writer/ReaderProxy.hpp>
 
 #include <mutex>
 #include <cassert>
 #include <algorithm>
 
+#include <fastdds/dds/log/Log.hpp>
+#include <fastdds/rtps/history/WriterHistory.hpp>
+#include <fastdds/rtps/common/LocatorListComparisons.hpp>
+
+#include <rtps/DataSharing/DataSharingNotifier.hpp>
+#include <rtps/history/HistoryAttributesExtension.hpp>
+#include <rtps/messages/RTPSGapBuilder.hpp>
+#include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/resources/TimedEvent.h>
+#include <rtps/writer/StatefulWriter.hpp>
+#include <utils/TimeConversion.hpp>
+
+
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 ReaderProxy::ReaderProxy(
@@ -69,7 +69,7 @@ ReaderProxy::ReaderProxy(
                             writer_->perform_nack_supression(guid());
                             return false;
                         },
-                        TimeConv::Time_t2MilliSecondsDouble(times.nackSupressionDuration));
+                        fastdds::rtps::TimeConv::Time_t2MilliSecondsDouble(times.nackSupressionDuration));
 
         initial_heartbeat_event_ = new TimedEvent(participant->getEventResource(),
                         [&]() -> bool
@@ -125,7 +125,7 @@ void ReaderProxy::start(
     is_active_ = true;
     durability_kind_ = reader_attributes.m_qos.m_durability.durabilityKind();
     expects_inline_qos_ = reader_attributes.m_expectsInlineQos;
-    is_reliable_ = reader_attributes.m_qos.m_reliability.kind != BEST_EFFORT_RELIABILITY_QOS;
+    is_reliable_ = reader_attributes.m_qos.m_reliability.kind != dds::BEST_EFFORT_RELIABILITY_QOS;
     disable_positive_acks_ = reader_attributes.disable_positive_acks();
     if (durability_kind_ == DurabilityKind_t::VOLATILE)
     {
@@ -152,7 +152,7 @@ bool ReaderProxy::update(
 {
     durability_kind_ = reader_attributes.m_qos.m_durability.durabilityKind();
     expects_inline_qos_ = reader_attributes.m_expectsInlineQos;
-    is_reliable_ = reader_attributes.m_qos.m_reliability.kind != BEST_EFFORT_RELIABILITY_QOS;
+    is_reliable_ = reader_attributes.m_qos.m_reliability.kind != dds::BEST_EFFORT_RELIABILITY_QOS;
     disable_positive_acks_ = reader_attributes.disable_positive_acks();
 
     locator_info_.update(
@@ -712,5 +712,5 @@ bool ReaderProxy::has_been_delivered(
 }
 
 }   // namespace rtps
-}   // namespace fastrtps
+}   // namespace fastdds
 }   // namespace eprosima

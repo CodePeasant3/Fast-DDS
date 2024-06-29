@@ -18,7 +18,7 @@
 #include <asio.hpp>
 
 #include <fastdds/rtps/attributes/ThreadSettings.hpp>
-#include <fastdds/rtps/common/Locator.h>
+#include <fastdds/rtps/common/Locator.hpp>
 #include <fastdds/rtps/common/LocatorWithMask.hpp>
 #include <fastdds/rtps/transport/network/NetmaskFilterKind.hpp>
 
@@ -236,7 +236,7 @@ protected:
      * @param[out] remote_locator Locator describing the remote restination we received a packet from.
      */
     bool Receive(
-            fastrtps::rtps::octet* receive_buffer,
+            octet* receive_buffer,
             uint32_t receive_buffer_capacity,
             uint32_t& receive_buffer_size,
             Locator& remote_locator);

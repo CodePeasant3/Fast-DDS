@@ -17,35 +17,31 @@
  *
  */
 
-#include <fastdds/rtps/builtin/discovery/participant/PDPListener.h>
-
-#include <fastdds/dds/log/Log.hpp>
-
-#include <fastdds/rtps/builtin/discovery/endpoint/EDP.h>
-#include <fastdds/rtps/builtin/discovery/participant/PDP.h>
-#include <fastdds/rtps/history/ReaderHistory.h>
-#include <fastdds/rtps/participant/ParticipantDiscoveryInfo.h>
-#include <fastdds/rtps/participant/RTPSParticipantListener.h>
-#include <fastdds/rtps/reader/RTPSReader.h>
-#include <fastdds/rtps/resources/TimedEvent.h>
-
-#include <fastrtps/utils/TimeConversion.h>
-
-#include <fastdds/core/policy/ParameterList.hpp>
-#include <rtps/builtin/discovery/participant/PDPEndpoints.hpp>
-#include <rtps/network/utils/external_locators.hpp>
-#include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/builtin/discovery/participant/PDPListener.h>
 
 #include <mutex>
 
+#include <fastdds/core/policy/ParameterList.hpp>
+#include <fastdds/dds/log/Log.hpp>
+#include <fastdds/rtps/history/ReaderHistory.hpp>
+#include <fastdds/rtps/participant/ParticipantDiscoveryInfo.hpp>
+#include <fastdds/rtps/participant/RTPSParticipantListener.hpp>
+#include <fastdds/rtps/reader/RTPSReader.hpp>
+
+#include <rtps/builtin/discovery/endpoint/EDP.h>
+#include <rtps/builtin/discovery/participant/PDP.h>
+#include <rtps/builtin/discovery/participant/PDPEndpoints.hpp>
+#include <rtps/network/utils/external_locators.hpp>
+#include <rtps/participant/RTPSParticipantImpl.h>
+#include <rtps/resources/TimedEvent.h>
 #ifdef FASTDDS_STATISTICS
-#include <fastdds/statistics/rtps/monitor_service/interfaces/IConnectionsObserver.hpp>
+#include <statistics/rtps/monitor-service/interfaces/IConnectionsObserver.hpp>
 #endif //FASTDDS_STATISTICS
 
 using ParameterList = eprosima::fastdds::dds::ParameterList;
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 PDPListener::PDPListener(
@@ -55,7 +51,7 @@ PDPListener::PDPListener(
 {
 }
 
-void PDPListener::onNewCacheChangeAdded(
+void PDPListener::on_new_cache_change_added(
         RTPSReader* reader,
         const CacheChange_t* const change_in)
 {
@@ -114,6 +110,11 @@ void PDPListener::onNewCacheChangeAdded(
             guid = temp_participant_data_.m_guid;
 
             if (parent_pdp_->getRTPSParticipant()->is_participant_ignored(guid.guidPrefix))
+            {
+                return;
+            }
+
+            if (!check_discovery_conditions(temp_participant_data_))
             {
                 return;
             }
@@ -278,6 +279,26 @@ void PDPListener::process_alive_data(
     reader->getMutex().lock();
 }
 
+bool PDPListener::check_discovery_conditions(
+        ParticipantProxyData& participant_data)
+{
+    bool ret = true;
+    uint32_t remote_participant_domain_id = participant_data.m_domain_id;
+
+    // In PDPSimple, do not match if the participant is from a different domain.
+    // If the domain id is unknown, it is assumed to be the same domain
+    if (remote_participant_domain_id != parent_pdp_->getRTPSParticipant()->get_domain_id() &&
+            remote_participant_domain_id != fastdds::dds::DOMAIN_ID_UNKNOWN)
+    {
+        EPROSIMA_LOG_INFO(RTPS_PDP_DISCOVERY, "Received participant with different domain id ("
+                << remote_participant_domain_id << ") than ours ("
+                << parent_pdp_->getRTPSParticipant()->get_domain_id() << ")");
+        ret = false;
+    }
+
+    return ret;
+}
+
 bool PDPListener::get_key(
         CacheChange_t* change)
 {
@@ -285,5 +306,5 @@ bool PDPListener::get_key(
 }
 
 } /* namespace rtps */
-} /* namespace fastrtps */
+} /* namespace fastdds */
 } /* namespace eprosima */

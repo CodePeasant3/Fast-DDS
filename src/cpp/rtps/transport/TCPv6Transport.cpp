@@ -20,8 +20,9 @@
 
 #include <asio.hpp>
 #include <fastdds/dds/log/Log.hpp>
-#include <fastdds/rtps/transport/TCPv6TransportDescriptor.h>
-#include <fastrtps/utils/IPLocator.h>
+#include <fastdds/rtps/transport/TCPv6TransportDescriptor.hpp>
+#include <fastdds/utils/IPLocator.hpp>
+
 #include <rtps/network/utils/netmask_filter.hpp>
 #include <utils/SystemInfo.hpp>
 
@@ -32,10 +33,6 @@ namespace eprosima {
 namespace fastdds {
 namespace rtps {
 
-using IPFinder = fastrtps::rtps::IPFinder;
-using octet = fastrtps::rtps::octet;
-using IPLocator = fastrtps::rtps::IPLocator;
-using octet = fastrtps::rtps::octet;
 using Log = fastdds::dds::Log;
 
 static bool get_ipv6s(
@@ -510,5 +507,5 @@ bool TCPv6Transport::compare_ips(
 }
 
 } // namespace rtps
-} // namespace fastrtps
+} // namespace fastdds
 } // namespace eprosima

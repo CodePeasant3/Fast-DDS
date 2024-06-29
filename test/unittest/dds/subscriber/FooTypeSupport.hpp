@@ -38,18 +38,18 @@ public:
     }
 
     bool serialize(
-            void* data,
-            eprosima::fastrtps::rtps::SerializedPayload_t* payload) override
+            const void* const data,
+            eprosima::fastdds::rtps::SerializedPayload_t* payload) override
     {
         return serialize(data, payload, eprosima::fastdds::dds::DEFAULT_DATA_REPRESENTATION);
     }
 
     bool serialize(
-            void* data,
-            fastrtps::rtps::SerializedPayload_t* payload,
+            const void* const data,
+            fastdds::rtps::SerializedPayload_t* payload,
             DataRepresentationId_t data_representation) override
     {
-        FooType* p_type = static_cast<FooType*>(data);
+        const FooType* p_type = static_cast<const FooType*>(data);
 
         // Object that manages the raw buffer.
         eprosima::fastcdr::FastBuffer fb(reinterpret_cast<char*>(payload->data), payload->max_size);
@@ -88,7 +88,7 @@ public:
     }
 
     bool deserialize(
-            fastrtps::rtps::SerializedPayload_t* payload,
+            fastdds::rtps::SerializedPayload_t* payload,
             void* data) override
     {
         //Convert DATA to pointer of your type
@@ -123,13 +123,13 @@ public:
     }
 
     std::function<uint32_t()> getSerializedSizeProvider(
-            void* data) override
+            const void* const data) override
     {
         return getSerializedSizeProvider(data, eprosima::fastdds::dds::DEFAULT_DATA_REPRESENTATION);
     }
 
     std::function<uint32_t()> getSerializedSizeProvider(
-            void* /*data*/,
+            const void* const /*data*/,
             DataRepresentationId_t /*data_representation*/) override
     {
         return [this]
@@ -151,11 +151,11 @@ public:
     }
 
     bool getKey(
-            void* data,
-            fastrtps::rtps::InstanceHandle_t* handle,
+            const void* const data,
+            fastdds::rtps::InstanceHandle_t* handle,
             bool force_md5) override
     {
-        FooType* p_type = static_cast<FooType*>(data);
+        const FooType* p_type = static_cast<const FooType*>(data);
         char key_buf[16]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
         // Object that manages the raw buffer.

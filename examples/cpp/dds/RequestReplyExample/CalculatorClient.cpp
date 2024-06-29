@@ -16,14 +16,16 @@
 #include <mutex>
 #include <vector>
 
-#include <fastdds/dds/domain/DomainParticipantFactory.hpp>
+#include "CalculatorPubSubTypes.hpp"
+
 #include <fastdds/dds/domain/DomainParticipant.hpp>
-#include <fastdds/dds/publisher/Publisher.hpp>
+#include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/publisher/DataWriter.hpp>
-#include <fastdds/dds/subscriber/Subscriber.hpp>
+#include <fastdds/dds/publisher/Publisher.hpp>
 #include <fastdds/dds/subscriber/DataReader.hpp>
-#include <fastrtps/subscriber/SampleInfo.h>
-#include "CalculatorPubSubTypes.h"
+#include <fastdds/dds/subscriber/SampleInfo.hpp>
+#include <fastdds/dds/subscriber/Subscriber.hpp>
+#include <fastdds/rtps/common/WriteParams.hpp>
 
 class CalculatorClient
 {
@@ -53,7 +55,7 @@ class CalculatorClient
             }
         }
 
-        eprosima::fastrtps::rtps::WriteParams write_params;
+        eprosima::fastdds::rtps::WriteParams write_params;
 
         // Structures for waiting reply
         std::mutex reception_mutex;

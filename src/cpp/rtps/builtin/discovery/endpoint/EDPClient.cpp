@@ -17,25 +17,26 @@
  *
  */
 
-#include <fastdds/rtps/builtin/discovery/participant/PDP.h>
-#include <fastdds/rtps/writer/StatefulWriter.h>
-#include <fastdds/rtps/reader/RTPSReader.h>
-#include <fastdds/rtps/history/WriterHistory.h>
-#include <fastdds/rtps/builtin/data/WriterProxyData.h>
-#include <fastdds/rtps/builtin/data/ReaderProxyData.h>
-#include <fastdds/rtps/builtin/data/ParticipantProxyData.h>
-
-#include <fastdds/dds/log/Log.hpp>
+#include <rtps/builtin/discovery/endpoint/EDPClient.h>
 
 #include <mutex>
 
-#include <rtps/builtin/discovery/endpoint/EDPClient.h>
+#include <fastdds/dds/log/Log.hpp>
+#include <fastdds/rtps/builtin/data/ParticipantProxyData.hpp>
+#include <fastdds/rtps/builtin/data/ReaderProxyData.hpp>
+#include <fastdds/rtps/builtin/data/WriterProxyData.hpp>
+#include <fastdds/rtps/history/WriterHistory.hpp>
+#include <fastdds/rtps/reader/RTPSReader.hpp>
+
+#include <rtps/builtin/discovery/participant/PDP.h>
+#if HAVE_SECURITY
+#include <rtps/security/accesscontrol/ParticipantSecurityAttributes.h>
+#endif // if HAVE_SECURITY
+#include <rtps/writer/StatefulWriter.hpp>
 
 namespace eprosima {
 namespace fastdds {
 namespace rtps {
-
-using namespace fastrtps::rtps;
 
 bool EDPClient::processLocalReaderProxyData(
         RTPSReader* local_reader,
@@ -121,16 +122,12 @@ bool EDPClient::removeLocalWriter(
     {
         InstanceHandle_t iH;
         iH = W->getGuid();
-        CacheChange_t* change = writer->first->new_change(
-            [this]() -> uint32_t
-            {
-                return mp_PDP->builtin_attributes().writerPayloadSize;
-            },
-            NOT_ALIVE_DISPOSED_UNREGISTERED, iH);
+        CacheChange_t* change = EDPUtils::create_change(*writer, NOT_ALIVE_DISPOSED_UNREGISTERED, iH,
+                        mp_PDP->builtin_attributes().writerPayloadSize);
         if (change != nullptr)
         {
             {
-                std::lock_guard<fastrtps::RecursiveTimedMutex> guard(*writer->second->getMutex());
+                std::lock_guard<fastdds::RecursiveTimedMutex> guard(*writer->second->getMutex());
                 for (auto ch = writer->second->changesBegin(); ch != writer->second->changesEnd(); ++ch)
                 {
                     if ((*ch)->instanceHandle == change->instanceHandle)
@@ -174,16 +171,12 @@ bool EDPClient::removeLocalReader(
     {
         InstanceHandle_t iH;
         iH = (R->getGuid());
-        CacheChange_t* change = writer->first->new_change(
-            [this]() -> uint32_t
-            {
-                return mp_PDP->builtin_attributes().writerPayloadSize;
-            },
-            NOT_ALIVE_DISPOSED_UNREGISTERED, iH);
+        CacheChange_t* change = EDPUtils::create_change(*writer, NOT_ALIVE_DISPOSED_UNREGISTERED, iH,
+                        mp_PDP->builtin_attributes().writerPayloadSize);
         if (change != nullptr)
         {
             {
-                std::lock_guard<fastrtps::RecursiveTimedMutex> guard(*writer->second->getMutex());
+                std::lock_guard<fastdds::RecursiveTimedMutex> guard(*writer->second->getMutex());
                 for (auto ch = writer->second->changesBegin(); ch != writer->second->changesEnd(); ++ch)
                 {
                     if ((*ch)->instanceHandle == change->instanceHandle)

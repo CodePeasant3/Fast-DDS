@@ -22,18 +22,18 @@
 #include <chrono>
 #include <thread>
 
-#include <fastrtps/attributes/TopicAttributes.h>
-#include <fastrtps/qos/WriterQos.h>
-#include <fastrtps/rtps/attributes/HistoryAttributes.h>
-#include <fastrtps/rtps/attributes/RTPSParticipantAttributes.h>
-#include <fastrtps/rtps/attributes/WriterAttributes.h>
-#include <fastrtps/rtps/history/WriterHistory.h>
-#include <fastrtps/rtps/participant/RTPSParticipant.h>
-#include <fastrtps/rtps/RTPSDomain.h>
-#include <fastrtps/rtps/writer/RTPSWriter.h>
+#include <fastdds/dds/publisher/qos/WriterQos.hpp>
+#include <fastdds/rtps/attributes/HistoryAttributes.hpp>
+#include <fastdds/rtps/attributes/RTPSParticipantAttributes.hpp>
+#include <fastdds/rtps/attributes/TopicAttributes.hpp>
+#include <fastdds/rtps/attributes/WriterAttributes.hpp>
+#include <fastdds/rtps/history/WriterHistory.hpp>
+#include <fastdds/rtps/participant/RTPSParticipant.hpp>
+#include <fastdds/rtps/RTPSDomain.hpp>
+#include <fastdds/rtps/writer/RTPSWriter.hpp>
 
-using namespace eprosima::fastrtps;
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds;
+using namespace eprosima::fastdds::rtps;
 using namespace std;
 
 TestWriterPersistent::TestWriterPersistent()
@@ -55,7 +55,7 @@ bool TestWriterPersistent::init()
 {
     //CREATE PARTICIPANT
     RTPSParticipantAttributes PParam;
-    PParam.builtin.discovery_config.discoveryProtocol = eprosima::fastrtps::rtps::DiscoveryProtocol::SIMPLE;
+    PParam.builtin.discovery_config.discoveryProtocol = DiscoveryProtocol::SIMPLE;
     PParam.builtin.use_WriterLivelinessProtocol = true;
     mp_participant = RTPSDomain::createParticipant(0, PParam);
     if (mp_participant == nullptr)
@@ -97,7 +97,7 @@ bool TestWriterPersistent::reg()
     Tatt.topicKind = NO_KEY;
     Tatt.topicDataType = "string";
     Tatt.topicName = "exampleTopic";
-    WriterQos Wqos;
+    eprosima::fastdds::dds::WriterQos Wqos;
     return mp_participant->registerWriter(mp_writer, Tatt, Wqos);
 }
 
@@ -112,18 +112,12 @@ void TestWriterPersistent::run(
 
     for (int i = 0; i < samples; ++i )
     {
-        CacheChange_t* ch = mp_writer->new_change([]() -> uint32_t
-                        {
-                            return 255;
-                        }, ALIVE);
+        CacheChange_t* ch = mp_history->create_change(255, ALIVE);
         if (!ch)     // In the case history is full, remove some old changes
         {
             std::cout << "cleaning history...";
-            mp_writer->remove_older_changes(20);
-            ch = mp_writer->new_change([]() -> uint32_t
-                            {
-                                return 255;
-                            }, ALIVE);
+            mp_history->remove_min_change();
+            ch = mp_history->create_change(255, ALIVE);
         }
 
 #if defined(_WIN32)

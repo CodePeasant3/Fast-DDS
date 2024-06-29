@@ -16,16 +16,16 @@
 #include <string>
 
 #include <gtest/gtest.h>
+#include <fastdds/rtps/common/Locator.hpp>
+#include <fastdds/utils/IPFinder.hpp>
+
 #include "BlackboxTests.hpp"
 #include "PubSubReader.hpp"
 #include "PubSubWriter.hpp"
 #include "PubSubParticipant.hpp"
 
-#include <fastrtps/rtps/common/Locator.h>
-#include <fastrtps/utils/IPFinder.h>
-
-using namespace eprosima::fastrtps;
-using namespace eprosima::fastrtps::rtps;
+using namespace eprosima::fastdds;
+using namespace eprosima::fastdds::rtps;
 
 enum communication_type
 {
@@ -186,8 +186,8 @@ TEST_P(NetworkConfig, PubSubOutLocatorSelection)
         reader.disable_builtin_transport().add_user_transport_to_pparams(descriptor_);
     }
 
-    reader.reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).
-            history_kind(eprosima::fastrtps::KEEP_ALL_HISTORY_QOS).
+    reader.reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).
+            history_kind(eprosima::fastdds::dds::KEEP_ALL_HISTORY_QOS).
             resource_limits_allocated_samples(2).
             resource_limits_max_samples(2).init();
 
@@ -195,9 +195,9 @@ TEST_P(NetworkConfig, PubSubOutLocatorSelection)
 
     descriptor_->m_output_udp_socket = static_cast<uint16_t>(locator.port);
 
-    writer.reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).history_kind(
-        eprosima::fastrtps::KEEP_ALL_HISTORY_QOS).
-            durability_kind(eprosima::fastrtps::TRANSIENT_LOCAL_DURABILITY_QOS).
+    writer.reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).history_kind(
+        eprosima::fastdds::dds::KEEP_ALL_HISTORY_QOS).
+            durability_kind(eprosima::fastdds::dds::TRANSIENT_LOCAL_DURABILITY_QOS).
             resource_limits_allocated_samples(20).
             disable_builtin_transport().
             add_user_transport_to_pparams(descriptor_).
@@ -229,14 +229,14 @@ TEST_P(NetworkConfig, PubSubInterfaceWhitelistLocalhost)
 
     descriptor_->interfaceWhiteList.push_back(ip);
 
-    reader.reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).history_depth(10).
+    reader.reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).history_depth(10).
             disable_multicast(0).
             disable_builtin_transport().
             add_user_transport_to_pparams(descriptor_).init();
 
     ASSERT_TRUE(reader.isInitialized());
 
-    writer.reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).history_depth(10).
+    writer.reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).history_depth(10).
             disable_multicast(1).
             disable_builtin_transport().
             add_user_transport_to_pparams(descriptor_).init();
@@ -278,20 +278,20 @@ void interface_whitelist_test(
     }
 
     // include the interfaces in the transport descriptor
-    for (const auto& interface : pub_interfaces)
+    for (const auto& network_interface : pub_interfaces)
     {
         if (!interface_name)
         {
-            pub_udp_descriptor->interfaceWhiteList.push_back(interface.name);
+            pub_udp_descriptor->interfaceWhiteList.push_back(network_interface.name);
         }
         else
         {
-            pub_udp_descriptor->interfaceWhiteList.push_back(interface.dev);
+            pub_udp_descriptor->interfaceWhiteList.push_back(network_interface.dev);
         }
     }
 
     // Set the transport descriptor WITH interfaces in the writer
-    writer.reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).history_depth(10).
+    writer.reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).history_depth(10).
             disable_builtin_transport().
             add_user_transport_to_pparams(pub_udp_descriptor).init();
 
@@ -309,20 +309,20 @@ void interface_whitelist_test(
     }
 
     // include the interfaces in the transport descriptor
-    for (const auto& interface : sub_interfaces)
+    for (const auto& network_interface : sub_interfaces)
     {
         if (!interface_name)
         {
-            sub_udp_descriptor->interfaceWhiteList.push_back(interface.name);
+            sub_udp_descriptor->interfaceWhiteList.push_back(network_interface.name);
         }
         else
         {
-            sub_udp_descriptor->interfaceWhiteList.push_back(interface.dev);
+            sub_udp_descriptor->interfaceWhiteList.push_back(network_interface.dev);
         }
     }
 
     // Set the transport descriptor WITH interfaces in the reader
-    reader.reliability(eprosima::fastrtps::RELIABLE_RELIABILITY_QOS).history_depth(10).
+    reader.reliability(eprosima::fastdds::dds::RELIABLE_RELIABILITY_QOS).history_depth(10).
             disable_builtin_transport().
             add_user_transport_to_pparams(sub_udp_descriptor).init();
 
@@ -588,10 +588,11 @@ TEST_P(NetworkConfig, PubGetSendingLocatorsWhitelist)
     constexpr uint32_t port = 31337u;
 
     descriptor_->m_output_udp_socket = static_cast<uint16_t>(port);
-    for (const auto& interface : interfaces)
+    for (const auto& network_interface : interfaces)
     {
-        std::cout << "Adding interface '" << interface.name << "' (" << interface.name.size() << ")" << std::endl;
-        descriptor_->interfaceWhiteList.push_back(interface.name);
+        std::cout << "Adding interface '" << network_interface.name << "' (" << network_interface.name.size() << ")" <<
+            std::endl;
+        descriptor_->interfaceWhiteList.push_back(network_interface.name);
     }
 
     writer.disable_builtin_transport().

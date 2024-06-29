@@ -17,13 +17,13 @@
  *
  */
 
-#include <fastdds/rtps/resources/TimedEvent.h>
-#include <fastdds/rtps/resources/ResourceEvent.h>
+#include <rtps/resources/TimedEvent.h>
+#include <rtps/resources/ResourceEvent.h>
 
 #include "TimedEventImpl.h"
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 TimedEvent::TimedEvent(
@@ -100,5 +100,5 @@ double TimedEvent::getRemainingTimeMilliSec()
 }
 
 } /* namespace rtps */
-} /* namespace fastrtps */
+} /* namespace fastdds */
 } /* namespace eprosima */

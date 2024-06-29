@@ -16,24 +16,25 @@
  * @file WriterProxy.h
  */
 
-#ifndef FASTRTPS_RTPS_READER_WRITERPROXY_H_
-#define FASTRTPS_RTPS_READER_WRITERPROXY_H_
+#ifndef FASTDDS_RTPS_READER_WRITERPROXY_H_
+#define FASTDDS_RTPS_READER_WRITERPROXY_H_
 #ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
 
-#include <fastdds/rtps/common/Types.h>
-#include <fastdds/rtps/common/Locator.h>
-#include <fastdds/rtps/common/CacheChange.h>
-#include <fastdds/rtps/attributes/ReaderAttributes.h>
+#include <fastdds/rtps/common/Types.hpp>
+#include <fastdds/rtps/common/Locator.hpp>
+#include <fastdds/rtps/common/CacheChange.hpp>
+#include <fastdds/rtps/attributes/ReaderAttributes.hpp>
 #include <fastdds/rtps/attributes/RTPSParticipantAllocationAttributes.hpp>
 #include <fastdds/rtps/messages/RTPSMessageSenderInterface.hpp>
-#include <fastrtps/utils/collections/ResourceLimitedVector.hpp>
-#include <fastdds/rtps/builtin/data/WriterProxyData.h>
+#include <fastdds/utils/collections/ResourceLimitedVector.hpp>
+#include <fastdds/rtps/builtin/data/WriterProxyData.hpp>
 #include <fastdds/rtps/common/LocatorSelectorEntry.hpp>
 
 #include <foonathan/memory/container.hpp>
 #include <foonathan/memory/memory_pool.hpp>
 
 #include <set>
+#include <vector>
 
 // Testing purpose
 #ifndef TEST_FRIENDS
@@ -41,7 +42,7 @@
 #endif // TEST_FRIENDS
 
 namespace eprosima {
-namespace fastrtps {
+namespace fastdds {
 namespace rtps {
 
 class RTPSParticipantImpl;
@@ -176,7 +177,7 @@ public:
         return persistence_guid_;
     }
 
-    inline LivelinessQosPolicyKind liveliness_kind() const
+    inline dds::LivelinessQosPolicyKind liveliness_kind() const
     {
         return liveliness_kind_;
     }
@@ -314,11 +315,13 @@ public:
     /**
      * Send a message through this interface.
      *
-     * @param message Pointer to the buffer with the message already serialized.
+     * @param buffers Vector of NetworkBuffers to send with data already serialized.
+     * @param total_bytes Total number of bytes to send. Should be equal to the sum of the @c size field of all buffers.
      * @param max_blocking_time_point Future timepoint where blocking send should end.
      */
     virtual bool send(
-            CDRMessage_t* message,
+            const std::vector<eprosima::fastdds::rtps::NetworkBuffer>& buffers,
+            const uint32_t& total_bytes,
             std::chrono::steady_clock::time_point max_blocking_time_point) const override;
 
     bool is_on_same_process() const
@@ -406,7 +409,7 @@ private:
     //! Taken from QoS
     uint32_t ownership_strength_;
     //! Taken from QoS
-    LivelinessQosPolicyKind liveliness_kind_;
+    dds::LivelinessQosPolicyKind liveliness_kind_;
     //! Taken from proxy data
     GUID_t persistence_guid_;
     //! Taken from proxy data
@@ -420,16 +423,16 @@ private:
 
     using ChangeIterator = decltype(changes_received_)::iterator;
 
-#if !defined(NDEBUG) && defined(FASTRTPS_SOURCE) && defined(__unix__)
+#if !defined(NDEBUG) && defined(FASTDDS_SOURCE) && defined(__unix__)
     int get_mutex_owner() const;
 
     int get_thread_id() const;
-#endif // if !defined(NDEBUG) && defined(FASTRTPS_SOURCE) && defined(__unix__)
+#endif // if !defined(NDEBUG) && defined(FASTDDS_SOURCE) && defined(__unix__)
 };
 
 } /* namespace rtps */
-} /* namespace fastrtps */
+} /* namespace fastdds */
 } /* namespace eprosima */
 
 #endif // ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
-#endif /* FASTRTPS_RTPS_READER_WRITERPROXY_H_ */
+#endif /* FASTDDS_RTPS_READER_WRITERPROXY_H_ */

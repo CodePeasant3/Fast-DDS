@@ -16,34 +16,44 @@
  * @file ParameterTypes.hpp
  */
 
-#ifndef _FASTDDS_DDS_QOS_PARAMETERTYPES_HPP_
-#define _FASTDDS_DDS_QOS_PARAMETERTYPES_HPP_
+#ifndef FASTDDS_DDS_CORE_POLICY__PARAMETERTYPES_HPP
+#define FASTDDS_DDS_CORE_POLICY__PARAMETERTYPES_HPP
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
 
-#include <fastdds/rtps/common/all_common.h>
-#include <fastdds/rtps/common/Token.h>
-#include <fastdds/rtps/messages/CDRMessage.h>
-
-#include <fastrtps/utils/fixed_size_string.hpp>
-
-#if HAVE_SECURITY
-#include <fastdds/rtps/security/accesscontrol/ParticipantSecurityAttributes.h>
-#include <fastdds/rtps/security/accesscontrol/EndpointSecurityAttributes.h>
-#endif // if HAVE_SECURITY
-
+#include <atomic>
 #include <string>
 #include <vector>
 
-namespace eprosima {
+#include <fastcdr/cdr/fixed_size_string.hpp>
 
-namespace fastrtps {
+#include <fastdds/dds/core/Types.hpp>
+#include <fastdds/rtps/common/InstanceHandle.hpp>
+#include <fastdds/rtps/common/Locator.hpp>
+#include <fastdds/rtps/common/SampleIdentity.hpp>
+#include <fastdds/rtps/common/SerializedPayload.hpp>
+#include <fastdds/rtps/common/Time_t.hpp>
+#include <fastdds/rtps/common/Token.hpp>
+
+#if HAVE_SECURITY
+#include <fastdds/rtps/attributes/EndpointSecurityAttributes.hpp>
+#endif // if HAVE_SECURITY
+
+namespace eprosima {
+namespace fastdds {
 namespace rtps {
 struct CDRMessage_t;
+#if HAVE_SECURITY
+namespace security {
+struct ParticipantSecurityAttributes;
+typedef uint32_t PluginEndpointSecurityAttributesMask;
+typedef uint32_t EndpointSecurityAttributesMask;
+typedef uint32_t PluginParticipantSecurityAttributesMask;
+typedef uint32_t ParticipantSecurityAttributesMask;
+} // namespace security
+#endif  // HAVE_SECURITY
 } // namespace rtps
-} // namespace fastrtps
 
-namespace fastdds {
 namespace dds {
 
 /**
@@ -174,7 +184,7 @@ public:
     /**
      * @brief Constructor without parameters
      */
-    RTPS_DllAPI Parameter_t()
+    FASTDDS_EXPORTED_API Parameter_t()
         : Pid(PID_PAD)
         , length(0)
     {
@@ -186,7 +196,7 @@ public:
      * @param pid Pid of the parameter
      * @param length Its associated length
      */
-    RTPS_DllAPI Parameter_t(
+    FASTDDS_EXPORTED_API Parameter_t(
             ParameterId_t pid,
             uint16_t length)
         : Pid(pid)
@@ -197,7 +207,7 @@ public:
     /**
      * @brief Destructor
      */
-    virtual RTPS_DllAPI ~Parameter_t()
+    virtual FASTDDS_EXPORTED_API ~Parameter_t()
     {
     }
 
@@ -224,7 +234,7 @@ class ParameterKey_t : public Parameter_t
 public:
 
     //!Instance Handle. <br> By default, c_InstanceHandle_Unknown.
-    fastrtps::rtps::InstanceHandle_t key;
+    fastdds::rtps::InstanceHandle_t key;
     /**
      * @brief Constructor without parameters
      */
@@ -255,7 +265,7 @@ public:
     ParameterKey_t(
             ParameterId_t pid,
             uint16_t in_length,
-            const fastrtps::rtps::InstanceHandle_t& ke)
+            const fastdds::rtps::InstanceHandle_t& ke)
         : Parameter_t(pid, in_length)
         , key(ke)
     {
@@ -352,7 +362,7 @@ public:
     ParameterString_t(
             ParameterId_t pid,
             uint16_t in_length,
-            const fastrtps::string_255& strin)
+            const fastcdr::string_255& strin)
         : Parameter_t(pid, in_length)
         , string_(strin)
     {
@@ -392,7 +402,7 @@ public:
 private:
 
     //!Name. <br> By default, empty string.
-    fastrtps::string_255 string_;
+    fastcdr::string_255 string_;
 };
 
 /**
@@ -455,7 +465,7 @@ class ParameterGuid_t : public Parameter_t
 public:
 
     //!GUID <br> By default, unknown GUID.
-    fastrtps::rtps::GUID_t guid;
+    fastdds::rtps::GUID_t guid;
 
     /**
      * @brief Constructor without parameters
@@ -487,7 +497,7 @@ public:
     ParameterGuid_t(
             ParameterId_t pid,
             uint16_t in_length,
-            const fastrtps::rtps::GUID_t& guidin)
+            const fastdds::rtps::GUID_t& guidin)
         : Parameter_t(pid, in_length)
         , guid(guidin)
     {
@@ -503,10 +513,10 @@ public:
     ParameterGuid_t(
             ParameterId_t pid,
             uint16_t in_length,
-            const fastrtps::rtps::InstanceHandle_t& iH)
+            const fastdds::rtps::InstanceHandle_t& iH)
         : Parameter_t(pid, in_length)
     {
-        fastrtps::rtps::iHandle2GUID(guid, iH);
+        fastdds::rtps::iHandle2GUID(guid, iH);
     }
 
 };
@@ -516,19 +526,56 @@ public:
 /**
  * @ingroup PARAMETER_MODULE
  */
+class ParameterDomainId_t : public Parameter_t
+{
+public:
+
+    //!Domain ID. <br> By default, DOMAIN_ID_UNKNOWN.
+    uint32_t domain_id;
+
+    /**
+     * @brief Constructor without parameters
+     */
+    ParameterDomainId_t()
+        : domain_id(DOMAIN_ID_UNKNOWN)
+    {
+    }
+
+    /**
+     * Constructor using a parameter PID and the parameter length
+     *
+     * @param pid Pid of the parameter
+     * @param in_length Its associated length
+     */
+    ParameterDomainId_t(
+            ParameterId_t pid,
+            uint16_t in_length)
+        : Parameter_t(pid, in_length)
+        , domain_id(DOMAIN_ID_UNKNOWN)
+    {
+        domain_id = DOMAIN_ID_UNKNOWN;
+    }
+
+};
+
+#define PARAMETER_DOMAINID_LENGTH 4
+
+/**
+ * @ingroup PARAMETER_MODULE
+ */
 class ParameterProtocolVersion_t : public Parameter_t
 {
 public:
 
     //!Protocol Version. <br> By default, c_ProtocolVersion.
-    fastrtps::rtps::ProtocolVersion_t protocolVersion;
+    fastdds::rtps::ProtocolVersion_t protocolVersion;
 
     /**
      * @brief Constructor without parameters
      */
     ParameterProtocolVersion_t()
     {
-        protocolVersion = fastrtps::rtps::c_ProtocolVersion;
+        protocolVersion = fastdds::rtps::c_ProtocolVersion;
     }
 
     /**
@@ -542,7 +589,7 @@ public:
             uint16_t in_length)
         : Parameter_t(pid, in_length)
     {
-        protocolVersion = fastrtps::rtps::c_ProtocolVersion;
+        protocolVersion = fastdds::rtps::c_ProtocolVersion;
     }
 
 };
@@ -593,7 +640,7 @@ class ParameterIP4Address_t : public Parameter_t
 public:
 
     //!Address <br> By default [0,0,0,0].
-    fastrtps::rtps::octet address[4];
+    fastdds::rtps::octet address[4];
 
     /**
      * @brief Constructor without parameters
@@ -626,10 +673,10 @@ public:
      * @param o4 Fourth octet
      */
     void setIP4Address(
-            fastrtps::rtps::octet o1,
-            fastrtps::rtps::octet o2,
-            fastrtps::rtps::octet o3,
-            fastrtps::rtps::octet o4)
+            fastdds::rtps::octet o1,
+            fastdds::rtps::octet o2,
+            fastdds::rtps::octet o3,
+            fastdds::rtps::octet o4)
     {
         address[0] = o1;
         address[1] = o2;
@@ -753,7 +800,7 @@ class ParameterCount_t : public Parameter_t
 public:
 
     //!Count <br> By default, 0.
-    fastrtps::rtps::Count_t count;
+    fastdds::rtps::Count_t count;
 
     /**
      * @brief Constructor without parameter
@@ -789,7 +836,7 @@ class ParameterEntityId_t : public Parameter_t
 public:
 
     //!EntityId <br> By default, ENTITYID_UNKNOWN.
-    fastrtps::rtps::EntityId_t entityId;
+    fastdds::rtps::EntityId_t entityId;
 
     /**
      * @brief Constructor without parameters
@@ -825,7 +872,7 @@ class ParameterTime_t : public Parameter_t
 public:
 
     //!Time <br> By default, 0.
-    fastrtps::rtps::Time_t time;
+    fastdds::rtps::Time_t time;
 
     /**
      * @brief Constructor without parameters
@@ -859,7 +906,7 @@ class ParameterBuiltinEndpointSet_t : public Parameter_t
 public:
 
     //!Builtin Endpoint Set <br> By default, 0.
-    fastrtps::rtps::BuiltinEndpointSet_t endpointSet;
+    fastdds::rtps::BuiltinEndpointSet_t endpointSet;
 
     /**
      * @brief Constructor without parameters
@@ -895,7 +942,7 @@ class ParameterNetworkConfigSet_t : public Parameter_t
 public:
 
     //!Network Config Set <br> By default, 0.
-    fastrtps::rtps::NetworkConfigSet_t netconfigSet;
+    fastdds::rtps::NetworkConfigSet_t netconfigSet;
 
     /**
      * @brief Constructor without parameters
@@ -934,7 +981,7 @@ class ParameterProperty_t
 private:
 
     //!Data <br> By default, nullptr.
-    fastrtps::rtps::octet* data;
+    fastdds::rtps::octet* data;
 
 public:
 
@@ -954,7 +1001,7 @@ public:
     explicit ParameterProperty_t(
             void* ptr)
     {
-        data = (fastrtps::rtps::octet*)ptr;
+        data = (fastdds::rtps::octet*)ptr;
     }
 
     /**
@@ -1004,7 +1051,7 @@ public:
             return false;
         }
 
-        fastrtps::rtps::octet* current = data;
+        fastdds::rtps::octet* current = data;
         memcpy(current, &first_size, 4);
         memcpy(current + 4, new_value.first.c_str(), first_size);
         memset(current + 4 + first_size, 0, first_alignment);
@@ -1064,7 +1111,7 @@ private:
      * @return Size of the pointer data
      */
     static uint32_t element_size(
-            const fastrtps::rtps::octet* ptr)
+            const fastdds::rtps::octet* ptr)
     {
         //Size of the element (with alignment)
         uint32_t size = *(uint32_t*)ptr;
@@ -1137,7 +1184,7 @@ class ParameterPropertyList_t : public Parameter_t
 private:
 
     //!Properties
-    fastrtps::rtps::SerializedPayload_t properties_;
+    fastdds::rtps::SerializedPayload_t properties_;
     //!Number of properties
     uint32_t Nproperties_ = 0;
     //!Maximum size
@@ -1162,7 +1209,7 @@ public:
          * @param ptr Octet pointer to be set
          */
         iterator(
-                fastrtps::rtps::octet* ptr)
+                fastdds::rtps::octet* ptr)
             : ptr_(ptr)
             , value_(ptr)
         {
@@ -1220,7 +1267,7 @@ public:
          *
          * @return the pointer
          */
-        fastrtps::rtps::octet* address() const
+        fastdds::rtps::octet* address() const
         {
             return ptr_;
         }
@@ -1228,7 +1275,7 @@ public:
     private:
 
         //!Pointer
-        fastrtps::rtps::octet* ptr_;
+        fastdds::rtps::octet* ptr_;
         //!Parameter Property
         ParameterProperty_t value_;
     };
@@ -1250,9 +1297,9 @@ public:
          * @param ptr Pointer to be set
          */
         const_iterator(
-                const fastrtps::rtps::octet* ptr)
+                const fastdds::rtps::octet* ptr)
             : ptr_(ptr)
-            , value_(const_cast<fastrtps::rtps::octet*>(ptr))
+            , value_(const_cast<fastdds::rtps::octet*>(ptr))
         {
         }
 
@@ -1300,7 +1347,7 @@ public:
         void advance()
         {
             ptr_ += value_.size();
-            value_ = ParameterProperty_t(const_cast<fastrtps::rtps::octet*>(ptr_));
+            value_ = ParameterProperty_t(const_cast<fastdds::rtps::octet*>(ptr_));
         }
 
         /**
@@ -1308,7 +1355,7 @@ public:
          *
          * @return the pointer
          */
-        const fastrtps::rtps::octet* address() const
+        const fastdds::rtps::octet* address() const
         {
             return ptr_;
         }
@@ -1316,7 +1363,7 @@ public:
     private:
 
         //!Pointer
-        const fastrtps::rtps::octet* ptr_;
+        const fastdds::rtps::octet* ptr_;
         //!Parameter Property
         ParameterProperty_t value_;
     };
@@ -1494,8 +1541,8 @@ public:
                 str1_size + alignment1 + 4 +
                 str2_size + alignment2 + 4);
 
-        push_back_helper((fastrtps::rtps::octet*)str1, str1_size, alignment1);
-        push_back_helper((fastrtps::rtps::octet*)str2, str2_size, alignment2);
+        push_back_helper((fastdds::rtps::octet*)str1, str1_size, alignment1);
+        push_back_helper((fastdds::rtps::octet*)str2, str2_size, alignment2);
         ++Nproperties_;
         return true;
     }
@@ -1556,11 +1603,11 @@ public:
 protected:
 
     void push_back_helper (
-            const fastrtps::rtps::octet* data,
+            const fastdds::rtps::octet* data,
             uint32_t size,
             uint32_t alignment)
     {
-        fastrtps::rtps::octet* o = (fastrtps::rtps::octet*)&size;
+        fastdds::rtps::octet* o = (fastdds::rtps::octet*)&size;
         memcpy(properties_.data + properties_.length, o, 4);
         properties_.length += 4;
 
@@ -1585,13 +1632,13 @@ class ParameterSampleIdentity_t : public Parameter_t
 public:
 
     //!Sample Identity <br> By default, unknown.
-    fastrtps::rtps::SampleIdentity sample_id;
+    fastdds::rtps::SampleIdentity sample_id;
 
     /**
      * @brief Constructor without parameters
      */
     ParameterSampleIdentity_t()
-        : sample_id(fastrtps::rtps::SampleIdentity::unknown())
+        : sample_id(fastdds::rtps::SampleIdentity::unknown())
     {
     }
 
@@ -1605,7 +1652,7 @@ public:
             ParameterId_t pid,
             uint16_t in_length)
         : Parameter_t(pid, in_length)
-        , sample_id(fastrtps::rtps::SampleIdentity::unknown())
+        , sample_id(fastdds::rtps::SampleIdentity::unknown())
     {
     }
 
@@ -1616,7 +1663,7 @@ public:
      * @return True if the parameter was correctly added.
      */
     bool addToCDRMessage(
-            fastrtps::rtps::CDRMessage_t* msg) const;
+            fastdds::rtps::CDRMessage_t* msg) const;
 
     /**
      * Read the parameter from a CDRMessage_t message.
@@ -1626,7 +1673,7 @@ public:
      * @return True if the parameter was correctly taken.
      */
     bool readFromCDRMessage(
-            fastrtps::rtps::CDRMessage_t* msg,
+            fastdds::rtps::CDRMessage_t* msg,
             uint16_t size);
 
 };
@@ -1644,7 +1691,7 @@ class ParameterToken_t : public Parameter_t
 public:
 
     //!Token
-    fastrtps::rtps::Token token;
+    fastdds::rtps::Token token;
 
     /**
      * @brief Constructor without parameters
@@ -1679,9 +1726,9 @@ class ParameterParticipantSecurityInfo_t : public Parameter_t
 public:
 
     //!Participant Security Attributes Mask <br> By default, 0.
-    fastrtps::rtps::security::ParticipantSecurityAttributesMask security_attributes = 0;
+    fastdds::rtps::security::ParticipantSecurityAttributesMask security_attributes = 0;
     //!Plugin Participant Security Attributes Mask <br> By default, 0.
-    fastrtps::rtps::security::PluginParticipantSecurityAttributesMask plugin_security_attributes = 0;
+    fastdds::rtps::security::PluginParticipantSecurityAttributesMask plugin_security_attributes = 0;
 
     /**
      * @brief Constructor without parameters. <br>
@@ -1718,8 +1765,8 @@ class ParameterEndpointSecurityInfo_t : public Parameter_t
 {
 public:
 
-    fastrtps::rtps::security::EndpointSecurityAttributesMask security_attributes = 0;
-    fastrtps::rtps::security::PluginEndpointSecurityAttributesMask plugin_security_attributes = 0;
+    fastdds::rtps::security::EndpointSecurityAttributesMask security_attributes = 0;
+    fastdds::rtps::security::PluginEndpointSecurityAttributesMask plugin_security_attributes = 0;
 
     /**
      * @brief Constructor without parameters. <br>
@@ -1816,8 +1863,38 @@ T get_proxy_property(
 }
 
 } //namespace dds
+
+namespace rtps {
+
+using ParameterId_t = fastdds::dds::ParameterId_t;
+using Parameter_t = fastdds::dds::Parameter_t;
+using ParameterKey_t = fastdds::dds::ParameterKey_t;
+using ParameterLocator_t = fastdds::dds::ParameterLocator_t;
+using ParameterString_t = fastdds::dds::ParameterString_t;
+using ParameterPort_t = fastdds::dds::ParameterPort_t;
+using ParameterGuid_t = fastdds::dds::ParameterGuid_t;
+using ParameterDomainId_t = fastdds::dds::ParameterDomainId_t;
+using ParameterProtocolVersion_t = fastdds::dds::ParameterProtocolVersion_t;
+using ParameterVendorId_t = fastdds::dds::ParameterVendorId_t;
+using ParameterIP4Address_t = fastdds::dds::ParameterIP4Address_t;
+using ParameterBool_t = fastdds::dds::ParameterBool_t;
+using ParameterStatusInfo_t = fastdds::dds::ParameterStatusInfo_t;
+using ParameterCount_t = fastdds::dds::ParameterCount_t;
+using ParameterEntityId_t = fastdds::dds::ParameterEntityId_t;
+using ParameterTime_t = fastdds::dds::ParameterTime_t;
+using ParameterBuiltinEndpointSet_t = fastdds::dds::ParameterBuiltinEndpointSet_t;
+using ParameterNetworkConfigSet_t = fastdds::dds::ParameterNetworkConfigSet_t;
+using ParameterPropertyList_t = fastdds::dds::ParameterPropertyList_t;
+using ParameterSampleIdentity_t = fastdds::dds::ParameterSampleIdentity_t;
+#if HAVE_SECURITY
+using ParameterToken_t = fastdds::dds::ParameterToken_t;
+using ParameterParticipantSecurityInfo_t = fastdds::dds::ParameterParticipantSecurityInfo_t;
+using ParameterEndpointSecurityInfo_t = fastdds::dds::ParameterEndpointSecurityInfo_t;
+#endif // if HAVE_SECURITY
+
+} //namespace rtps
 } //namespace fastdds
 } //namespace eprosima
 
 #endif // ifndef DOXYGEN_SHOULD_SKIP_THIS_PUBLIC
-#endif // _FASTDDS_DDS_QOS_PARAMETERTYPES_HPP_
+#endif // FASTDDS_DDS_CORE_POLICY__PARAMETERTYPES_HPP
