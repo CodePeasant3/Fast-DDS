@@ -23,7 +23,7 @@ set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 set(CPACK_OUTPUT_FILE_PREFIX packages)
 
 # debug symbol package(生成符号表包)
-set(CPACK_DEBIAN_DEBUGINFO_PACKAGE ON)
+set(CPACK_DEBIAN_DEBUGINFO_PACKAGE OFF)
 
 # Source package(生成源文件包)
 set(CPACK_SOURCE_GENERATOR "ZIP")
@@ -46,7 +46,7 @@ set(CPACK_PACKAGE_ARCHITECTURE ${DPKG_ARCH})
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${DPKG_ARCH})
 
 # 依赖
-set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON) # 若该标志为NO, 则将自动获取依赖, 若想完全手动设置则需要关闭
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF) # 若该标志为NO, 则将自动获取依赖, 若想完全手动设置则需要关闭
 #set(CPACK_DEBIAN_PACKAGE_DEPENDS "TODO")
 #set(CPACK_DEBIAN_PACKAGE_DEPENDS "ying (>= 1.0.4), protobuf-compiler (>= 3.0.0), libyaml-cpp-dev (>= 0.5.2)")
 

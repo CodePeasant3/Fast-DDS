@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "**"
+
+jobs:
+  ubuntu_amd64:
+    strategy:
+      fail-fast: false
+      matrix:
+        image_ver:
+          - 20.04_v1
+          - 22.04_v1
+          - 24.04_v1
+        sharedlibs: [ON]
+        build_type: [Release]
+
+    runs-on: ubuntu-latest
+    container:
+      image: juhaoming/ubuntu-compile-dev:${{matrix.image_ver}}
+      options: --user root
+
+    steps:
+      - name: Install dep packages
+        run: |
+          apt update && apt install -y libtinyxml2-dev libasio-dev
+          wget https://github.com/CodePeasant3/memory/releases/download/cp3%2F0.7.3/FOONATHAN_MEMORY_0.7.3_`dpkg --print-architecture`_`lsb_release -c -s`.deb
+          wget https://github.com/CodePeasant3/Fast-CDR/releases/download/cp3%2F2.2.1/fastcdr_2.2.1_`dpkg --print-architecture`_`lsb_release -c -s`.deb
+          dpkg -i *.deb
+
+
+      - uses: actions/checkout@v4
+      - name: Create Build Environment
+        run: cmake -E make_directory build
+
+      - name: Configure
+        working-directory: build/
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DBUILD_SHARED_LIBS=${{matrix.sharedlibs}} -DCMAKE_INSTALL_PREFIX=/opt/cp3
+
+      - name: Build
+        working-directory: build/
+        run: cmake --build . --config ${{matrix.build_type}}
+
+      - name: Build package
+        working-directory: build/
+        run: make package
+
+      - name: Archive deb files
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-on-${{matrix.image_ver}}
+          path: build/packages/*.deb
+
+  upload:
+    needs: ubuntu_amd64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all workflow run artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: build/packages
+          merge-multiple: true
+
+      - name: ls-deb
+        run: ls build/packages
+
+      - run: gh release create $GITHUB_REF_NAME build/packages/*.deb --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.UPLOAD_TOKEN }}
+        shell: bash
+        name: Creates a release in GitHub and uploads attachments
